@@ -4,6 +4,7 @@ import { useUser } from '../contexts/UserContext';
 import RoleSelection from '../pages/RoleSelection';
 import HomeOwnerDashboard from '../pages/homeowner/Dashboard';
 import FixerDashboard from '../pages/fixer/Dashboard';
+import AvailableJobs from '../pages/fixer/AvailableJobs';
 import JobList from '../pages/jobs/JobList';
 import JobDetails from '../pages/jobs/JobDetails';
 import CreateJob from '../pages/jobs/CreateJob';
@@ -63,9 +64,17 @@ const AppRoutes: React.FC = () => {
             </ProtectedRoute>
           } />
           
-          {/* Public routes */}
-          <Route path="/jobs" element={<JobList />} />
-          <Route path="/jobs/:id" element={<JobDetails />} />
+          {/* Job routes */}
+          <Route path="/jobs" element={
+            <ProtectedRoute role="fixer">
+              <AvailableJobs />
+            </ProtectedRoute>
+          } />
+          <Route path="/jobs/:id" element={
+            <ProtectedRoute role="fixer">
+              <JobDetails />
+            </ProtectedRoute>
+          } />
           
           {/* Protected routes */}
           <Route path="/create-job" element={

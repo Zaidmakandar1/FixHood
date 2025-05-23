@@ -4,9 +4,10 @@ export type JobApplication = {
   fixerId: string;
   fixerName: string;
   message: string;
-  price?: string;
+  price?: number;
   estimatedTime?: string;
   createdAt: string;
+  status: 'pending' | 'accepted' | 'rejected';
 };
 
 export type JobType = {

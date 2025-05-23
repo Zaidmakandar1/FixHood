@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Clock, CheckCircle, XCircle, MessageSquare, Star } from 'lucide-react';
 import { useUser } from '../../contexts/UserContext';
-import { fetchHomeownerJobs } from '../../services/jobService';
+import { fetchHomeownerJobs, acceptApplication, rejectApplication } from '../../services/jobService';
 import { JobType } from '../../types/job';
 import JobCard from '../../components/jobs/JobCard';
 
@@ -12,21 +12,40 @@ const HomeOwnerDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('active');
 
-  useEffect(() => {
-    const loadJobs = async () => {
-      try {
-        // In a real app, we'd pass the user ID
-        const fetchedJobs = await fetchHomeownerJobs();
-        setJobs(fetchedJobs);
-      } catch (error) {
-        console.error('Error fetching jobs:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const loadJobs = async () => {
+    try {
+      const fetchedJobs = await fetchHomeownerJobs();
+      setJobs(fetchedJobs);
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadJobs();
   }, []);
+
+  const handleAcceptApplication = async (jobId: string, fixerId: string) => {
+    try {
+      await acceptApplication(jobId, fixerId);
+      // Reload jobs to show updated status
+      await loadJobs();
+    } catch (error) {
+      console.error('Error accepting application:', error);
+    }
+  };
+
+  const handleRejectApplication = async (jobId: string, fixerId: string) => {
+    try {
+      await rejectApplication(jobId, fixerId);
+      // Reload jobs to show updated status
+      await loadJobs();
+    } catch (error) {
+      console.error('Error rejecting application:', error);
+    }
+  };
 
   const filteredJobs = jobs.filter(job => {
     if (activeTab === 'active') {
@@ -104,24 +123,61 @@ const HomeOwnerDashboard = () => {
           </div>
         ) : filteredJobs.length > 0 ? (
           filteredJobs.map(job => (
-            <JobCard 
-              key={job._id} 
-              job={job} 
-              view="homeowner" 
-              actionButton={
-                job.status === 'assigned' ? (
-                  <Link to={`/chat/${job._id}`} className="btn btn-accent flex items-center">
-                    <MessageSquare size={16} className="mr-2" />
-                    Message Fixer
-                  </Link>
-                ) : job.status === 'open' ? (
-                  <span className="badge bg-primary-100 text-primary-800 flex items-center">
-                    <Clock size={14} className="mr-1" />
-                    Waiting for applications
-                  </span>
-                ) : null
-              }
-            />
+            <div key={job._id} className="space-y-4">
+              <JobCard 
+                job={job} 
+                view="homeowner" 
+                actionButton={
+                  job.status === 'assigned' ? (
+                    <Link to={`/chat/${job._id}`} className="btn btn-accent flex items-center">
+                      <MessageSquare size={16} className="mr-2" />
+                      Message Fixer
+                    </Link>
+                  ) : job.status === 'open' ? (
+                    <span className="badge bg-primary-100 text-primary-800 flex items-center">
+                      <Clock size={14} className="mr-1" />
+                      Waiting for applications
+                    </span>
+                  ) : null
+                }
+              />
+              
+              {/* Show applications for open jobs */}
+              {job.status === 'open' && job.applications && job.applications.length > 0 && (
+                <div className="ml-8 space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Applications ({job.applications.length})</h3>
+                  {job.applications.map((application, index) => (
+                    <div key={index} className="bg-white p-4 rounded-lg border border-gray-200">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h4 className="font-medium text-gray-900">{application.fixerName}</h4>
+                          <p className="text-sm text-gray-500">Applied {new Date(application.createdAt).toLocaleDateString()}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-gray-900">${application.price}</p>
+                          <p className="text-sm text-gray-500">Est. {application.estimatedTime}</p>
+                        </div>
+                      </div>
+                      <p className="text-gray-600 mb-4">{application.message}</p>
+                      <div className="flex space-x-2">
+                        <button 
+                          onClick={() => handleAcceptApplication(job._id, application.fixerId)}
+                          className="btn btn-success btn-sm"
+                        >
+                          Accept
+                        </button>
+                        <button 
+                          onClick={() => handleRejectApplication(job._id, application.fixerId)}
+                          className="btn btn-error btn-sm"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           ))
         ) : (
           <div className="text-center py-12 bg-gray-50 rounded-lg">

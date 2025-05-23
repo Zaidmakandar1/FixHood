@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, SubmitHandler } from 'react-hook-form';
-import { Camera, Loader2, Upload, X, CheckCircle } from 'lucide-react';
+import { Camera, Loader2, Upload, X } from 'lucide-react';
 import useGeolocation from '../../hooks/useGeolocation';
-import { createJob, enhanceJobDescription } from '../../services/jobService';
+import { createJob } from '../../services/jobService';
+import { JobStatus } from '../../types/job';
 
 type FormInputs = {
   title: string;
@@ -15,16 +16,12 @@ type FormInputs = {
 const CreateJob = () => {
   const navigate = useNavigate();
   const { coordinates, error: locationError } = useGeolocation();
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<FormInputs>();
+  const { register, handleSubmit, formState: { errors } } = useForm<FormInputs>();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isEnhancing, setIsEnhancing] = useState(false);
-  const [enhancedDescription, setEnhancedDescription] = useState<string | null>(null);
-  const [autoTags, setAutoTags] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  
-  const description = watch('description');
   
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -39,37 +36,22 @@ const CreateJob = () => {
     setImagePreview(null);
   };
   
-  const handleEnhance = async () => {
-    if (!description || description.length < 10) return;
-    
-    setIsEnhancing(true);
-    try {
-      const result = await enhanceJobDescription(description);
-      setEnhancedDescription(result.enhancedDescription);
-      setAutoTags(result.tags);
-    } catch (error) {
-      console.error('Error enhancing description:', error);
-    } finally {
-      setIsEnhancing(false);
-    }
-  };
-  
   const onSubmit: SubmitHandler<FormInputs> = async (data) => {
     if (!coordinates) {
-      alert('Location information is required. Please enable location access.');
+      setError('Location information is required. Please enable location access.');
       return;
     }
     
     setIsSubmitting(true);
+    setError(null);
+    
     try {
       // Prepare job data
       const jobData = {
         ...data,
-        description: enhancedDescription || data.description,
         location: coordinates,
-        tags: autoTags,
         image: imagePreview, // In a real app, we'd upload this to a server
-        status: 'open',
+        status: 'open' as JobStatus,
         createdAt: new Date().toISOString()
       };
       
@@ -78,9 +60,9 @@ const CreateJob = () => {
       
       // Navigate to the homeowner dashboard
       navigate('/homeowner');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating job:', error);
-      alert('Failed to create job. Please try again.');
+      setError(error.message || 'Failed to create job. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -93,6 +75,20 @@ const CreateJob = () => {
         <p className="text-gray-600 mb-6">Describe what needs fixing and get connected with qualified professionals</p>
         
         <div className="bg-white rounded-xl shadow-md p-6">
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+          
+          {locationError && (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-600">
+                <strong>Location access required:</strong> {locationError}
+              </p>
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit(onSubmit)}>
             {/* Job Title */}
             <div className="mb-6">
@@ -113,31 +109,9 @@ const CreateJob = () => {
             
             {/* Job Description */}
             <div className="mb-6">
-              <div className="flex justify-between items-center mb-1">
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                  Job Description
-                </label>
-                <button
-                  type="button"
-                  className="text-xs text-primary-600 hover:text-primary-800 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={handleEnhance}
-                  disabled={isEnhancing || !description || description.length < 10}
-                >
-                  {isEnhancing ? (
-                    <>
-                      <Loader2 size={12} className="animate-spin mr-1" />
-                      Enhancing...
-                    </>
-                  ) : enhancedDescription ? (
-                    <>
-                      <CheckCircle size={12} className="mr-1" />
-                      Enhanced
-                    </>
-                  ) : (
-                    'Enhance with AI'
-                  )}
-                </button>
-              </div>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                Job Description
+              </label>
               <textarea
                 id="description"
                 rows={5}
@@ -150,25 +124,6 @@ const CreateJob = () => {
               ></textarea>
               {errors.description && (
                 <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
-              )}
-              
-              {/* Enhanced description preview */}
-              {enhancedDescription && (
-                <div className="mt-3 p-3 bg-primary-50 rounded-lg border border-primary-100">
-                  <p className="text-xs text-primary-800 font-medium mb-1">AI Enhanced Description:</p>
-                  <p className="text-sm text-gray-800">{enhancedDescription}</p>
-                  
-                  {autoTags.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-xs text-primary-800 font-medium mb-1">Suggested Tags:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {autoTags.map((tag, index) => (
-                          <span key={index} className="badge badge-primary">{tag}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
               )}
             </div>
             
@@ -252,34 +207,23 @@ const CreateJob = () => {
               )}
             </div>
             
-            {/* Location Warning */}
-            {locationError && (
-              <div className="mb-6 p-3 bg-red-50 border border-red-100 rounded-lg">
-                <p className="text-sm text-red-600">
-                  <strong>Location access is required:</strong> {locationError} 
-                  Please enable location access in your browser settings to continue.
-                </p>
-              </div>
-            )}
-            
             {/* Submit Button */}
-            <button
-              type="submit"
-              className="btn btn-primary w-full flex items-center justify-center"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 size={18} className="animate-spin mr-2" />
-                  Posting Job...
-                </>
-              ) : (
-                <>
-                  <Upload size={18} className="mr-2" />
-                  Post Job
-                </>
-              )}
-            </button>
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin mr-2" />
+                    Creating Job...
+                  </>
+                ) : (
+                  'Post Job'
+                )}
+              </button>
+            </div>
           </form>
         </div>
       </div>

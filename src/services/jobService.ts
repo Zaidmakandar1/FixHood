@@ -1,267 +1,304 @@
 import axios from 'axios';
 import { JobType, JobApplication } from '../types/job';
-import { mockJobs } from '../mockData/jobs';
 
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'http://localhost:5000/api';
 
-// Mock implementation for enhancing job description with local LLM
-export const enhanceJobDescription = async (rawDescription: string) => {
+// Function to get auth token
+const getAuthToken = () => {
+  const token = localStorage.getItem('fixitlocal-token');
+  console.log('Raw token from localStorage:', token); // Debug raw token
+
+  if (!token) {
+    console.error('No token found in localStorage');
+    window.location.href = '/login';
+    throw new Error('No authentication token found. Please log in.');
+  }
+
+  // Remove any quotes and whitespace that might be present in the token
+  const cleanToken = token.replace(/['"\s]/g, '');
+  console.log('Cleaned token:', cleanToken); // Debug cleaned token
+
+  // Basic JWT validation
   try {
-    // In a real app, this would call your local LLM endpoint
-    // const response = await axios.post(`${API_BASE_URL}/enhance-job`, { description: rawDescription });
-    // return response.data;
-    
-    // Mock response
-    console.log('Enhancing job description with local LLM:', rawDescription);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Generate mock enhanced description and tags
-    const enhancedDescription = `${rawDescription}\n\nAdditional details based on the description:\n- The issue appears to require professional attention\n- Recommended tools: Phillips screwdriver, adjustable wrench\n- Estimated time to complete: 1-3 hours depending on complexity`;
-    
-    // Generate some relevant tags based on the description
-    const words = rawDescription.toLowerCase().split(/\s+/);
-    const possibleTags = ['plumbing', 'electrical', 'carpentry', 'appliance', 'painting', 'landscaping', 'general'];
-    
-    const tags = possibleTags.filter(tag => 
-      words.some(word => word.includes(tag.toLowerCase()))
-    );
-    
-    // If no matching tags, add some default ones
-    if (tags.length === 0) {
-      tags.push('general', 'home repair');
+    const parts = cleanToken.split('.');
+    if (parts.length !== 3) {
+      console.error('Invalid token format: not a valid JWT');
+      localStorage.removeItem('fixitlocal-token');
+      window.location.href = '/login';
+      throw new Error('Invalid token format');
     }
-    
-    return { 
-      enhancedDescription,
-      tags
-    };
+
+    // Try to decode the payload
+    const payload = JSON.parse(atob(parts[1]));
+    console.log('Decoded token payload:', payload); // Debug decoded payload
+
+    // Check if token is expired
+    const expirationTime = payload.exp * 1000; // Convert to milliseconds
+    if (Date.now() >= expirationTime) {
+      console.error('Token has expired');
+      localStorage.removeItem('fixitlocal-token');
+      window.location.href = '/login';
+      throw new Error('Token has expired. Please log in again.');
+    }
+
+    return cleanToken;
   } catch (error) {
-    console.error('Error enhancing job description:', error);
+    console.error('Token validation error:', error);
+    localStorage.removeItem('fixitlocal-token');
+    window.location.href = '/login';
+    throw new Error('Invalid authentication token. Please log in again.');
+  }
+};
+
+// Function to get auth headers
+const getAuthHeaders = () => {
+  try {
+    const token = getAuthToken();
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json'
+    };
+    console.log('Request headers:', headers); // Debug headers
+    return headers;
+  } catch (error) {
+    console.error('Authentication error:', error);
+    window.location.href = '/login';
     throw error;
   }
 };
 
-// Mock implementation for fetching jobs
+// Fetch available jobs for fixers
 export const fetchJobs = async (coordinates?: { lat: number; lng: number }) => {
   try {
-    // In a real app, this would call your backend API
-    // const response = await axios.get(`${API_BASE_URL}/jobs`);
-    // return response.data;
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Return mock data
-    return mockJobs.filter(job => job.status === 'open');
-  } catch (error) {
-    console.error('Error fetching jobs:', error);
-    throw error;
+    const response = await axios.get(`${API_BASE_URL}/jobs`, {
+      headers: getAuthHeaders(),
+      params: coordinates ? { near: `${coordinates.lat},${coordinates.lng}` } : undefined
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      if (error.response.status === 403) {
+        throw new Error('Authentication failed. Please log in again.');
+      } else if (error.response.status === 404) {
+        throw new Error('Available jobs endpoint not found. Please check the API configuration.');
+      } else {
+        throw new Error(error.response.data?.message || 'Failed to fetch available jobs.');
+      }
+    } else if (error.request) {
+      throw new Error('No response from server. Please check your internet connection.');
+    } else {
+      throw error;
+    }
   }
 };
 
-// Mock implementation for fetching homeowner jobs
+// Fetch homeowner's jobs
 export const fetchHomeownerJobs = async () => {
   try {
-    // In a real app, this would call your backend API with the homeowner ID
-    // const response = await axios.get(`${API_BASE_URL}/homeowner/jobs`);
-    // return response.data;
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Return mock data
-    return mockJobs.filter(job => job.homeownerId === 'mock-user-id');
-  } catch (error) {
-    console.error('Error fetching homeowner jobs:', error);
-    throw error;
+    const response = await axios.get(`${API_BASE_URL}/jobs/homeowner`, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      if (error.response.status === 403) {
+        throw new Error('Authentication failed. Please log in again.');
+      } else if (error.response.status === 404) {
+        throw new Error('Homeowner jobs endpoint not found. Please check the API configuration.');
+      } else {
+        throw new Error(error.response.data?.message || 'Failed to fetch homeowner jobs.');
+      }
+    } else if (error.request) {
+      throw new Error('No response from server. Please check your internet connection.');
+    } else {
+      throw error;
+    }
   }
 };
 
-// Mock implementation for fetching fixer jobs
+// Fetch fixer's jobs
 export const fetchFixerJobs = async () => {
   try {
-    // In a real app, this would call your backend API with the fixer ID
-    // const response = await axios.get(`${API_BASE_URL}/fixer/jobs`);
-    // return response.data;
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Return mock data for jobs where the fixer is assigned or has applied
-    return mockJobs.filter(job => 
-      (job.assignedFixer?.fixerId === 'mock-user-id') || 
-      job.applications?.some(app => app.fixerId === 'mock-user-id')
-    );
+    const response = await axios.get(`${API_BASE_URL}/jobs/my-applications`, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
   } catch (error) {
     console.error('Error fetching fixer jobs:', error);
     throw error;
   }
 };
 
-// Mock implementation for fetching a job by ID
+// Fetch a specific job by ID
 export const fetchJobById = async (jobId: string) => {
   try {
-    // In a real app, this would call your backend API
-    // const response = await axios.get(`${API_BASE_URL}/jobs/${jobId}`);
-    // return response.data;
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Find the job in our mock data
-    const job = mockJobs.find(job => job._id === jobId);
-    
-    if (!job) {
-      throw new Error('Job not found');
-    }
-    
-    return job;
+    const response = await axios.get(`${API_BASE_URL}/jobs/${jobId}`, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
   } catch (error) {
     console.error(`Error fetching job ${jobId}:`, error);
     throw error;
   }
 };
 
-// Mock implementation for creating a job
+// Create a new job
 export const createJob = async (jobData: Partial<JobType>) => {
   try {
-    // In a real app, this would call your backend API
-    // const response = await axios.post(`${API_BASE_URL}/jobs`, jobData);
-    // return response.data;
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Create a new job with mock data
-    const newJob: JobType = {
-      _id: `job-${Date.now()}`,
-      homeownerId: 'mock-user-id',
-      homeownerName: 'John Doe',
-      title: jobData.title || '',
-      description: jobData.description || '',
-      image: jobData.image || null,
-      location: jobData.location || { lat: 0, lng: 0 },
-      locationName: 'Local Area',
+    // Check authentication first
+    const headers = getAuthHeaders();
+    if (!headers) {
+      throw new Error('Authentication failed. Please log in again.');
+    }
+
+    // Get user data from localStorage
+    const userData = localStorage.getItem('fixitlocal-user');
+    if (!userData) {
+      throw new Error('User data not found. Please log in again.');
+    }
+
+    const user = JSON.parse(userData);
+    if (!user.id || !user.name) {
+      throw new Error('Invalid user data. Please log in again.');
+    }
+
+    // Validate required fields
+    if (!jobData.title || !jobData.description || !jobData.location) {
+      throw new Error('Missing required fields: title, description, and location are required');
+    }
+
+    // Format the job data to match the backend expectations
+    const formattedJobData = {
+      title: jobData.title.trim(),
+      description: jobData.description.trim(),
       category: jobData.category || 'general',
-      estimatedBudget: jobData.estimatedBudget || undefined,
-      tags: jobData.tags || [],
+      budget: parseFloat(jobData.estimatedBudget?.replace(/[^0-9]/g, '') || '0'),
+      location: {
+        lat: parseFloat(jobData.location.lat.toString()),
+        lng: parseFloat(jobData.location.lng.toString())
+      },
       status: 'open',
-      applications: [],
+      image: jobData.image || null,
       createdAt: new Date().toISOString(),
+      homeownerId: user.id,
+      homeownerName: user.name
     };
-    
-    // Add to mock data (in a real app, this would be saved in the database)
-    mockJobs.unshift(newJob);
-    
-    return newJob;
-  } catch (error) {
-    console.error('Error creating job:', error);
-    throw error;
+
+    // Validate coordinates
+    if (isNaN(formattedJobData.location.lat) || isNaN(formattedJobData.location.lng)) {
+      throw new Error('Invalid location coordinates');
+    }
+
+    console.log('Creating job with data:', formattedJobData);
+    console.log('Using endpoint:', `${API_BASE_URL}/jobs`);
+
+    const response = await axios.post(`${API_BASE_URL}/jobs`, formattedJobData, {
+      headers,
+      validateStatus: (status) => {
+        return status < 500; // Don't reject if status is less than 500
+      }
+    });
+
+    if (response.status === 403) {
+      console.error('Authentication failed:', response.data);
+      localStorage.removeItem('fixitlocal-token');
+      window.location.href = '/login';
+      throw new Error('Your session has expired. Please log in again.');
+    }
+
+    if (response.status === 500) {
+      console.error('Server error details:', response.data);
+      // Try to extract the error message from the response
+      const errorMessage = response.data?.message || response.data?.error || 'Server error. Please try again.';
+      throw new Error(errorMessage);
+    }
+
+    if (response.status !== 200 && response.status !== 201) {
+      console.error('Request failed:', response.data);
+      throw new Error(response.data?.message || 'Failed to create job');
+    }
+
+    console.log('Job creation response:', response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error('Full error object:', error);
+    if (error.response) {
+      console.error('Error response:', {
+        status: error.response.status,
+        data: error.response.data,
+        headers: error.response.headers
+      });
+      
+      if (error.response.status === 403) {
+        console.error('Authentication failed:', error.response.data);
+        localStorage.removeItem('fixitlocal-token');
+        window.location.href = '/login';
+        throw new Error('Your session has expired. Please log in again.');
+      } else if (error.response.status === 404) {
+        throw new Error('Job creation endpoint not found. Please check the API configuration.');
+      } else if (error.response.status === 500) {
+        console.error('Server error details:', error.response.data);
+        // Try to extract the error message from the response
+        const errorMessage = error.response.data?.message || error.response.data?.error || 'Server error. Please try again.';
+        throw new Error(errorMessage);
+      } else {
+        throw new Error(error.response.data?.message || 'Failed to create job. Please try again.');
+      }
+    } else if (error.request) {
+      throw new Error('No response from server. Please check your internet connection.');
+    } else {
+      throw error;
+    }
   }
 };
 
-// Mock implementation for applying to a job
+// Apply for a job
 export const applyForJob = async (jobId: string, applicationData: Partial<JobApplication>) => {
   try {
-    // In a real app, this would call your backend API
-    // const response = await axios.post(`${API_BASE_URL}/jobs/${jobId}/apply`, applicationData);
-    // return response.data;
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Find the job in our mock data
-    const jobIndex = mockJobs.findIndex(job => job._id === jobId);
-    
-    if (jobIndex === -1) {
-      throw new Error('Job not found');
-    }
-    
-    // Create the application
-    const application: JobApplication = {
-      fixerId: applicationData.fixerId || '',
-      fixerName: applicationData.fixerName || '',
-      message: applicationData.message || '',
-      price: applicationData.price,
-      estimatedTime: applicationData.estimatedTime,
-      createdAt: new Date().toISOString()
-    };
-    
-    // Add the application to the job
-    mockJobs[jobIndex].applications = [
-      ...(mockJobs[jobIndex].applications || []),
-      application
-    ];
-    
-    return application;
+    const response = await axios.post(`${API_BASE_URL}/jobs/${jobId}/apply`, applicationData, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
   } catch (error) {
     console.error(`Error applying for job ${jobId}:`, error);
     throw error;
   }
 };
 
-// Mock implementation for accepting an application
+// Accept an application
 export const acceptApplication = async (jobId: string, fixerId: string) => {
   try {
-    // In a real app, this would call your backend API
-    // const response = await axios.post(`${API_BASE_URL}/jobs/${jobId}/accept`, { fixerId });
-    // return response.data;
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Find the job in our mock data
-    const jobIndex = mockJobs.findIndex(job => job._id === jobId);
-    
-    if (jobIndex === -1) {
-      throw new Error('Job not found');
-    }
-    
-    // Find the fixer application
-    const application = mockJobs[jobIndex].applications?.find(app => app.fixerId === fixerId);
-    
-    if (!application) {
-      throw new Error('Application not found');
-    }
-    
-    // Update the job status and assigned fixer
-    mockJobs[jobIndex].status = 'assigned';
-    mockJobs[jobIndex].assignedFixer = {
-      fixerId,
-      fixerName: application.fixerName
-    };
-    
-    return mockJobs[jobIndex];
+    const response = await axios.post(`${API_BASE_URL}/jobs/${jobId}/accept`, { fixerId }, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
   } catch (error) {
     console.error(`Error accepting application for job ${jobId}:`, error);
     throw error;
   }
 };
 
-// Mock implementation for completing a job
+// Reject an application
+export const rejectApplication = async (jobId: string, fixerId: string) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/jobs/${jobId}/reject`, { fixerId }, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error rejecting application for job ${jobId}:`, error);
+    throw error;
+  }
+};
+
+// Complete a job
 export const completeJob = async (jobId: string) => {
   try {
-    // In a real app, this would call your backend API
-    // const response = await axios.post(`${API_BASE_URL}/jobs/${jobId}/complete`);
-    // return response.data;
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Find the job in our mock data
-    const jobIndex = mockJobs.findIndex(job => job._id === jobId);
-    
-    if (jobIndex === -1) {
-      throw new Error('Job not found');
-    }
-    
-    // Update the job status
-    mockJobs[jobIndex].status = 'completed';
-    mockJobs[jobIndex].completedAt = new Date().toISOString();
-    
-    return mockJobs[jobIndex];
+    const response = await axios.post(`${API_BASE_URL}/jobs/${jobId}/complete`, {}, {
+      headers: getAuthHeaders()
+    });
+    return response.data;
   } catch (error) {
     console.error(`Error completing job ${jobId}:`, error);
     throw error;

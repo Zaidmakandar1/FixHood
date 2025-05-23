@@ -43,20 +43,19 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Check for stored user data on mount
     const storedUser = localStorage.getItem('fixitlocal-user');
-    const storedRole = localStorage.getItem('fixitlocal-role') as 'homeowner' | 'fixer' | null;
     
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
         setUser(parsedUser);
+        // Always use the role from the user object
         setRole(parsedUser.role);
+        localStorage.setItem('fixitlocal-role', parsedUser.role);
       } catch (err) {
         console.error('Error parsing stored user data:', err);
         localStorage.removeItem('fixitlocal-user');
         localStorage.removeItem('fixitlocal-role');
       }
-    } else if (storedRole) {
-      setRole(storedRole);
     }
     
     setLoading(false);

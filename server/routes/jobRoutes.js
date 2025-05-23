@@ -1,4 +1,4 @@
-import express from 'express';
+const express = require('express');
 import Job from '../models/Job.js';
 
 const router = express.Router();
