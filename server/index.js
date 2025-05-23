@@ -101,9 +101,9 @@ app.use('/api/chat', chatRoutes);
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err.message);
+  // Only show a generic error message to the client
   res.status(500).json({
-    message: 'Something went wrong!',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    message: 'Something went wrong!'
   });
 });
 
