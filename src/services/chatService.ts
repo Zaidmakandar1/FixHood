@@ -1,33 +1,31 @@
 import { io, Socket } from 'socket.io-client';
+import api from './api';
 import { MessageType } from '../types/chat';
 
 const SOCKET_URL = 'http://localhost:5000';
 let socket: Socket | null = null;
 
-// Get auth token from localStorage
-const getAuthToken = () => {
-  return localStorage.getItem('fixitlocal-token');
-};
-
 // Initialize socket connection
-export const initializeSocket = () => {
-  if (!socket) {
-    const token = getAuthToken();
-    socket = io(SOCKET_URL, {
-      auth: {
-        token
-      }
-    });
-    
-    socket.on('connect', () => {
-      console.log('Connected to chat server');
-    });
-    
-    socket.on('error', (error) => {
-      console.error('Socket error:', error);
-    });
-  }
-  return socket;
+const initializeSocket = () => {
+  const token = localStorage.getItem('fixitlocal-token');
+  const newSocket = io(SOCKET_URL, {
+    auth: { token },
+    transports: ['websocket'],
+  });
+
+  newSocket.on('connect', () => {
+    console.log('Connected to chat server');
+  });
+
+  newSocket.on('connect_error', (error) => {
+    console.error('Socket connection error:', error);
+  });
+
+  newSocket.on('error', (error) => {
+    console.error('Socket error:', error);
+  });
+
+  return newSocket;
 };
 
 // Join a specific chat room
@@ -39,41 +37,51 @@ export const joinChat = (jobId: string) => {
 };
 
 // Send a message
-export const sendMessage = async (messageData: MessageType): Promise<MessageType> => {
+export const sendMessage = async (messageData: MessageType): Promise<void> => {
   return new Promise((resolve, reject) => {
     if (!socket) {
       socket = initializeSocket();
     }
-    
-    socket.emit('send_message', messageData);
-    
-    // Wait for confirmation that the message was saved
-    socket.once('receive_message', (message: MessageType) => {
-      if (message.senderId === messageData.senderId) {
-        resolve(message);
-      }
-    });
-    
-    // Add timeout to prevent hanging
-    setTimeout(() => {
+
+    // Set a timeout for message sending
+    const timeout = setTimeout(() => {
       reject(new Error('Message send timeout'));
-    }, 5000);
+    }, 10000); // Increased timeout to 10 seconds
+
+    socket.emit('send_message', {
+      jobId: messageData.jobId,
+      content: messageData.content
+    });
+
+    // Listen for the message to be received back from the server
+    const messageHandler = (receivedMessage: MessageType) => {
+      if (receivedMessage.jobId === messageData.jobId && 
+          receivedMessage.content === messageData.content) {
+        clearTimeout(timeout);
+        socket?.off('receive_message', messageHandler);
+        resolve();
+      }
+    };
+
+    socket.on('receive_message', messageHandler);
+
+    // Handle errors
+    const errorHandler = (error: string) => {
+      clearTimeout(timeout);
+      socket?.off('error', errorHandler);
+      socket?.off('receive_message', messageHandler);
+      reject(new Error(error));
+    };
+
+    socket.on('error', errorHandler);
   });
 };
 
 // Fetch chat history
 export const fetchMessages = async (jobId: string): Promise<MessageType[]> => {
   try {
-    const token = getAuthToken();
-    const response = await fetch(`${SOCKET_URL}/api/chat/${jobId}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    if (!response.ok) {
-      throw new Error('Failed to fetch messages');
-    }
-    return await response.json();
+    const response = await api.get(`/chat/${jobId}`);
+    return response.data;
   } catch (error) {
     console.error(`Error fetching messages for job ${jobId}:`, error);
     throw error;
@@ -85,16 +93,17 @@ export const subscribeToMessages = (callback: (message: MessageType) => void) =>
   if (!socket) {
     socket = initializeSocket();
   }
-  
   socket.on('receive_message', callback);
   
   // Return unsubscribe function
   return () => {
-    socket.off('receive_message', callback);
+    if (socket) {
+      socket.off('receive_message', callback);
+    }
   };
 };
 
-// Clean up socket connection
+// Cleanup socket connection
 export const cleanup = () => {
   if (socket) {
     socket.disconnect();

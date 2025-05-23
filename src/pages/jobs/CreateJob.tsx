@@ -11,6 +11,7 @@ type FormInputs = {
   description: string;
   category?: string;
   estimatedBudget?: string;
+  tags?: string[];
 };
 
 const CreateJob = () => {
@@ -52,6 +53,7 @@ const CreateJob = () => {
         location: coordinates,
         image: imagePreview, // In a real app, we'd upload this to a server
         status: 'open' as JobStatus,
+        tags: data.tags || [],
         createdAt: new Date().toISOString()
       };
       
@@ -89,9 +91,9 @@ const CreateJob = () => {
             </div>
           )}
           
-          <form onSubmit={handleSubmit(onSubmit)}>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Job Title */}
-            <div className="mb-6">
+            <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
                 Job Title
               </label>
@@ -108,7 +110,7 @@ const CreateJob = () => {
             </div>
             
             {/* Job Description */}
-            <div className="mb-6">
+            <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
                 Job Description
               </label>
@@ -128,9 +130,9 @@ const CreateJob = () => {
             </div>
             
             {/* Category */}
-            <div className="mb-6">
+            <div>
               <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-                Category (Optional)
+                Category
               </label>
               <select
                 id="category"
@@ -143,71 +145,76 @@ const CreateJob = () => {
                 <option value="carpentry">Carpentry</option>
                 <option value="painting">Painting</option>
                 <option value="appliance">Appliance Repair</option>
-                <option value="landscaping">Landscaping</option>
+                <option value="hvac">HVAC</option>
                 <option value="general">General Maintenance</option>
               </select>
             </div>
             
-            {/* Budget Estimate */}
-            <div className="mb-6">
+            {/* Estimated Budget */}
+            <div>
               <label htmlFor="estimatedBudget" className="block text-sm font-medium text-gray-700 mb-1">
                 Estimated Budget (Optional)
               </label>
-              <select
+              <input
                 id="estimatedBudget"
+                type="text"
                 className="input"
+                placeholder="e.g., $100-200"
                 {...register('estimatedBudget')}
-              >
-                <option value="">Select budget range</option>
-                <option value="under-100">Under $100</option>
-                <option value="100-250">$100 - $250</option>
-                <option value="250-500">$250 - $500</option>
-                <option value="500-1000">$500 - $1,000</option>
-                <option value="over-1000">Over $1,000</option>
-                <option value="not-sure">Not Sure</option>
-              </select>
+              />
             </div>
             
             {/* Image Upload */}
-            <div className="mb-6">
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Add Photo (Optional)
+                Add Photos (Optional)
               </label>
-              
-              {imagePreview ? (
-                <div className="relative rounded-lg overflow-hidden h-48 bg-gray-100">
-                  <img 
-                    src={imagePreview} 
-                    alt="Job preview" 
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={removeImage}
-                    className="absolute top-2 right-2 rounded-full bg-white p-1 shadow-md hover:bg-gray-100"
-                  >
-                    <X size={18} className="text-gray-700" />
-                  </button>
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                <div className="space-y-1 text-center">
+                  {imagePreview ? (
+                    <div className="relative">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="mx-auto h-32 w-auto object-cover rounded-md"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeImage}
+                        className="absolute -top-2 -right-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <Camera className="mx-auto h-12 w-12 text-gray-400" />
+                      <div className="flex text-sm text-gray-600">
+                        <label
+                          htmlFor="image-upload"
+                          className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500"
+                        >
+                          <span>Upload a photo</span>
+                          <input
+                            id="image-upload"
+                            name="image-upload"
+                            type="file"
+                            className="sr-only"
+                            accept="image/*"
+                            onChange={handleImageChange}
+                          />
+                        </label>
+                        <p className="pl-1">or drag and drop</p>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        PNG, JPG, GIF up to 10MB
+                      </p>
+                    </>
+                  )}
                 </div>
-              ) : (
-                <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:bg-gray-50 transition-colors">
-                  <input
-                    type="file"
-                    id="image"
-                    accept="image/*"
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    onChange={handleImageChange}
-                  />
-                  <div className="flex flex-col items-center justify-center">
-                    <Camera size={32} className="text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-500 mb-1">Drag a photo or click to upload</p>
-                    <p className="text-xs text-gray-400">(Max size: 5MB)</p>
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
-            
-            {/* Submit Button */}
+
             <div className="flex justify-end">
               <button
                 type="submit"

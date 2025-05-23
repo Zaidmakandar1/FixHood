@@ -10,7 +10,9 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const jobRoutes = require('./routes/jobs');
 const chatRoutes = require('./routes/chat');
+const ratingRoutes = require('./routes/ratings');
 const jwt = require('jsonwebtoken');
+const Message = require('./models/Message');
 
 // Verify environment variables
 if (!process.env.MONGODB_URI) {
@@ -57,21 +59,42 @@ io.on('connection', (socket) => {
 
   socket.on('send_message', async (messageData) => {
     try {
+      console.log('Received message data:', messageData);
+      
+      if (!messageData.jobId || !messageData.content) {
+        throw new Error('Missing required message data');
+      }
+
       // Create message with proper structure
-      const message = await require('./models/Message').create({
+      const message = new Message({
         jobId: messageData.jobId,
         content: messageData.content,
-        senderId: socket.user.id
+        senderId: socket.user.userId,
+        createdAt: new Date()
       });
+
+      // Save the message
+      await message.save();
       
       // Populate sender information
       await message.populate('senderId', 'name');
       
+      const messageToSend = {
+        _id: message._id,
+        jobId: message.jobId,
+        content: message.content,
+        senderId: message.senderId._id,
+        senderName: message.senderId.name,
+        createdAt: message.createdAt
+      };
+
+      console.log('Broadcasting message:', messageToSend);
+      
       // Broadcast to all clients in the chat room
-      io.to(messageData.jobId).emit('receive_message', message);
+      io.to(messageData.jobId).emit('receive_message', messageToSend);
     } catch (error) {
       console.error('Error handling message:', error);
-      socket.emit('error', 'Failed to send message');
+      socket.emit('error', error.message);
     }
   });
 
@@ -97,6 +120,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/ratings', ratingRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

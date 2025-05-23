@@ -1,15 +1,17 @@
 import { Link } from 'react-router-dom';
-import { MapPin, Calendar, Tag, User } from 'lucide-react';
+import { MapPin, Calendar, Tag, User, Star, CheckCircle, MessageSquare } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { JobType } from '../../types/job';
+import { markJobAsCompleted } from '../../services/jobService';
 
 type JobCardProps = {
   job: JobType;
   view: 'homeowner' | 'fixer';
   actionButton?: React.ReactNode;
+  onMarkCompleted?: () => void;
 };
 
-const JobCard = ({ job, view, actionButton }: JobCardProps) => {
+const JobCard = ({ job, view, actionButton, onMarkCompleted }: JobCardProps) => {
   // Determine status badge color
   const getStatusBadgeClass = () => {
     switch (job.status) {
@@ -40,6 +42,68 @@ const JobCard = ({ job, view, actionButton }: JobCardProps) => {
       default:
         return 'Unknown';
     }
+  };
+
+  // Handle marking job as completed
+  const handleMarkCompleted = async () => {
+    try {
+      await markJobAsCompleted(job._id);
+      if (onMarkCompleted) {
+        onMarkCompleted();
+      }
+    } catch (error) {
+      console.error('Error marking job as completed:', error);
+      // You might want to show an error toast here
+    }
+  };
+
+  // Determine action button based on job status and view
+  const renderActionButton = () => {
+    if (actionButton) {
+      return actionButton;
+    }
+
+    if (view === 'homeowner') {
+      if (job.status === 'assigned') {
+        return (
+          <div className="flex space-x-2">
+            <button
+              onClick={handleMarkCompleted}
+              className="btn btn-success flex items-center"
+            >
+              <CheckCircle size={16} className="mr-2" />
+              Mark Completed
+            </button>
+            <Link to={`/chat/${job._id}`} className="btn btn-accent flex items-center">
+              <MessageSquare size={16} className="mr-2" />
+              Message
+            </Link>
+          </div>
+        );
+      } else if (job.status === 'completed' && !job.rating) {
+        return (
+          <button
+            onClick={() => {
+              // This will be handled by the parent component's actionButton
+              return;
+            }}
+            className="btn btn-accent flex items-center"
+          >
+            <Star size={16} className="mr-2" />
+            Rate Fixer
+          </button>
+        );
+      }
+    } else if (view === 'fixer' && job.status === 'assigned') {
+      return (
+        <Link to={`/chat/${job._id}`} className="btn btn-accent flex items-center">
+          <MessageSquare size={16} className="mr-2" />
+          Message Homeowner
+        </Link>
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -90,7 +154,7 @@ const JobCard = ({ job, view, actionButton }: JobCardProps) => {
           
           {/* Action button */}
           <div className="flex-shrink-0">
-            {actionButton}
+            {renderActionButton()}
           </div>
         </div>
         

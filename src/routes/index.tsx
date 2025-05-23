@@ -10,81 +10,101 @@ import JobDetails from '../pages/jobs/JobDetails';
 import CreateJob from '../pages/jobs/CreateJob';
 import Navigation from '../components/shared/Navigation';
 import ChatPage from '../pages/chat/ChatPage';
-import ProfilePage from '../pages/profile/ProfilePage';
+import FixerProfile from '../pages/profile/FixerProfile';
+import HomeownerProfile from '../pages/profile/HomeownerProfile';
 import NotFoundPage from '../pages/NotFoundPage';
 import ProtectedRoute from '../components/shared/ProtectedRoute';
 import Register from '../pages/Register';
 import Login from '../pages/Login';
 
-const AppRoutes: React.FC = () => {
-  const { user, loading } = useUser();
+const AppRoutes = () => {
+  const { user, role } = useUser();
 
-  if (loading) {
+  if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
-      </div>
+      <Routes>
+        <Route path="/" element={<RoleSelection />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     );
   }
 
   return (
     <>
-      {user && <Navigation />}
-      <main className="pt-16 min-h-screen">
+      <Navigation />
+      <main className="pt-16">
         <Routes>
-          {/* Root route - redirect based on user role */}
-          <Route path="/" element={
-            !user ? (
-              <RoleSelection />
-            ) : user.role === 'homeowner' ? (
-              <Navigate to="/homeowner" replace />
-            ) : (
-              <Navigate to="/fixer" replace />
-            )
-          } />
-          
-          {/* Auth routes */}
-          <Route path="/login" element={
-            !user ? <Login /> : <Navigate to={`/${user.role}`} replace />
-          } />
-          <Route path="/register" element={
-            !user ? <Register /> : <Navigate to={`/${user.role}`} replace />
-          } />
-          
-          {/* Protected routes */}
-          <Route path="/homeowner" element={
-            <ProtectedRoute role="homeowner">
-              <HomeOwnerDashboard />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/fixer" element={
-            <ProtectedRoute role="fixer">
-              <FixerDashboard />
-            </ProtectedRoute>
-          } />
-          
-          {/* Job routes */}
-          <Route path="/jobs" element={
-            <ProtectedRoute role="fixer">
-              <AvailableJobs />
-            </ProtectedRoute>
-          } />
-          <Route path="/jobs/:id" element={
-            <ProtectedRoute role="fixer">
-              <JobDetails />
-            </ProtectedRoute>
-          } />
-          
-          {/* Protected routes */}
-          <Route path="/create-job" element={
-            <ProtectedRoute role="homeowner">
-              <CreateJob />
-            </ProtectedRoute>
-          } />
-          
+          {/* Redirect from root based on role */}
+          <Route
+            path="/"
+            element={
+              <Navigate
+                to={role === 'homeowner' ? '/homeowner' : '/fixer'}
+                replace
+              />
+            }
+          />
+
+          {/* Homeowner routes */}
+          <Route
+            path="/homeowner"
+            element={
+              <ProtectedRoute role="homeowner">
+                <HomeOwnerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/jobs/create"
+            element={
+              <ProtectedRoute role="homeowner">
+                <CreateJob />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Fixer routes */}
+          <Route
+            path="/fixer"
+            element={
+              <ProtectedRoute role="fixer">
+                <FixerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/jobs"
+            element={
+              <ProtectedRoute role="fixer">
+                <AvailableJobs />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Shared routes */}
+          <Route path="/jobs/:jobId" element={<JobDetails />} />
           <Route path="/chat/:jobId" element={<ChatPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
+          
+          {/* Profile routes */}
+          <Route
+            path="/profile"
+            element={
+              role === 'homeowner' ? (
+                <ProtectedRoute role="homeowner">
+                  <HomeownerProfile />
+                </ProtectedRoute>
+              ) : (
+                <ProtectedRoute role="fixer">
+                  <FixerProfile isOwnProfile />
+                </ProtectedRoute>
+              )
+            }
+          />
+          <Route path="/fixer/:fixerId" element={<FixerProfile />} />
+
+          {/* 404 route */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>

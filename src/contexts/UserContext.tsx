@@ -41,19 +41,19 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check for stored user data on mount
+    // Check for stored user data and token on mount
     const storedUser = localStorage.getItem('fixitlocal-user');
+    const token = localStorage.getItem('fixitlocal-token');
     
-    if (storedUser) {
+    if (storedUser && token) {
       try {
         const parsedUser = JSON.parse(storedUser);
         setUser(parsedUser);
-        // Always use the role from the user object
         setRole(parsedUser.role);
-        localStorage.setItem('fixitlocal-role', parsedUser.role);
       } catch (err) {
         console.error('Error parsing stored user data:', err);
         localStorage.removeItem('fixitlocal-user');
+        localStorage.removeItem('fixitlocal-token');
         localStorage.removeItem('fixitlocal-role');
       }
     }
@@ -89,10 +89,24 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(data.message || 'Login failed');
       }
 
+      // First set the user and role in state
       setUser(data.user);
       handleSetRole(data.user.role);
+
+      // Then store in localStorage
       localStorage.setItem('fixitlocal-user', JSON.stringify(data.user));
       localStorage.setItem('fixitlocal-token', data.token);
+      localStorage.setItem('fixitlocal-role', data.user.role);
+
+      // Add a small delay to ensure state is updated before navigation
+      setTimeout(() => {
+        if (data.user.role === 'homeowner') {
+          navigate('/homeowner');
+        } else if (data.user.role === 'fixer') {
+          navigate('/fixer');
+        }
+      }, 100);
+
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred during login';
       setError(errorMessage);
@@ -119,7 +133,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (!response.ok) {
         if (data.details) {
-          // Handle detailed error messages
           if (typeof data.details === 'object') {
             const errorMessages = Object.entries(data.details)
               .filter(([_, message]) => message !== null)
@@ -132,10 +145,16 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(data.message || 'Registration failed');
       }
 
-      setUser(data.user);
-      handleSetRole(data.user.role);
+      // Store user data and token
       localStorage.setItem('fixitlocal-user', JSON.stringify(data.user));
       localStorage.setItem('fixitlocal-token', data.token);
+      localStorage.setItem('fixitlocal-role', data.user.role);
+
+      setUser(data.user);
+      handleSetRole(data.user.role);
+
+      // Navigate to the appropriate dashboard
+      navigate(`/${data.user.role}`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred during registration';
       setError(errorMessage);
@@ -150,6 +169,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     handleSetRole(null);
     localStorage.removeItem('fixitlocal-user');
     localStorage.removeItem('fixitlocal-token');
+    localStorage.removeItem('fixitlocal-role');
     navigate('/');
   };
 
@@ -227,4 +247,6 @@ export const useUser = () => {
     throw new Error('useUser must be used within a UserProvider');
   }
   return context;
-}; 
+};
+
+export default UserContext; 

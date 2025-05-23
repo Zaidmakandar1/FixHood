@@ -12,12 +12,33 @@ const api = axios.create({
 
 // Add token to requests if it exists
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('fixitlocal-token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
+}, (error) => {
+  return Promise.reject(error);
 });
+
+// Handle response errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      // Handle 401 (Unauthorized) errors
+      if (error.response.status === 401) {
+        // Clear user data and token
+        localStorage.removeItem('fixitlocal-user');
+        localStorage.removeItem('fixitlocal-token');
+        localStorage.removeItem('fixitlocal-role');
+        // Redirect to login page
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Auth API calls
 export const authAPI = {

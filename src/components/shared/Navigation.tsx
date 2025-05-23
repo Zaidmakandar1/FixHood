@@ -19,15 +19,15 @@ const Navigation = () => {
   }
 
   return (
-    <nav className="fixed top-0 w-full bg-white shadow-md z-50">
+    <nav className="fixed top-0 w-full bg-primary-100 shadow-md z-50">
       <div className="container-custom mx-auto">
         <div className="flex items-center justify-between h-16">
           {/* Logo and site name */}
           <Link to={role === 'homeowner' ? '/homeowner' : '/fixer'} className="flex items-center">
-            <div className="w-10 h-10 bg-primary-500 text-white rounded-full flex items-center justify-center mr-2">
+            <div className="w-10 h-10 bg-primary-500 text-primary-950 rounded-full flex items-center justify-center mr-2">
               <span className="text-lg font-bold">F</span>
             </div>
-            <span className="text-xl font-bold text-primary-500">FixItLocal</span>
+            <span className="text-xl font-bold text-primary-800">FixItLocal</span>
           </Link>
 
           {/* Desktop navigation */}
@@ -38,7 +38,7 @@ const Navigation = () => {
                   <Home size={18} />
                   <span>Dashboard</span>
                 </NavLink>
-                <NavLink to="/create-job" isActive={isActive('/create-job')}>
+                <NavLink to="/jobs/create" isActive={isActive('/jobs/create')}>
                   <Briefcase size={18} />
                   <span>Post Job</span>
                 </NavLink>
@@ -64,7 +64,7 @@ const Navigation = () => {
                 logout();
                 closeMenu();
               }}
-              className="flex items-center space-x-1 text-gray-600 hover:text-red-500 transition-colors"
+              className="flex items-center space-x-1 text-primary-700 hover:text-red-500 transition-colors"
             >
               <LogOut size={18} />
               <span>Logout</span>
@@ -75,7 +75,7 @@ const Navigation = () => {
           <div className="md:hidden">
             <button 
               onClick={toggleMenu}
-              className="text-gray-600 hover:text-primary-500 focus:outline-none focus:text-primary-500"
+              className="text-primary-700 hover:text-primary-900 focus:outline-none focus:text-primary-900"
             >
               {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -85,7 +85,7 @@ const Navigation = () => {
 
       {/* Mobile menu */}
       {isOpen && (
-        <div className="md:hidden bg-white shadow-lg animate-fade-in">
+        <div className="md:hidden bg-primary-50 shadow-lg animate-fade-in">
           <div className="px-2 pt-2 pb-4 space-y-1">
             {role === 'homeowner' ? (
               <>
@@ -93,7 +93,7 @@ const Navigation = () => {
                   <Home size={18} />
                   <span>Dashboard</span>
                 </MobileNavLink>
-                <MobileNavLink to="/create-job" onClick={closeMenu} isActive={isActive('/create-job')}>
+                <MobileNavLink to="/jobs/create" onClick={closeMenu} isActive={isActive('/jobs/create')}>
                   <Briefcase size={18} />
                   <span>Post Job</span>
                 </MobileNavLink>
@@ -119,7 +119,7 @@ const Navigation = () => {
                 closeMenu();
                 logout();
               }}
-              className="flex items-center w-full px-4 py-2 text-gray-600 hover:bg-red-50 hover:text-red-500"
+              className="flex items-center w-full px-4 py-2 text-primary-700 hover:bg-red-50 hover:text-red-500"
             >
               <LogOut size={18} className="mr-2" />
               <span>Logout</span>
@@ -137,8 +137,8 @@ const NavLink = ({ to, children, isActive }: { to: string; children: React.React
     to={to}
     className={`flex items-center space-x-1 px-3 py-2 rounded-md transition-colors
       ${isActive 
-        ? 'bg-primary-50 text-primary-600' 
-        : 'text-gray-600 hover:bg-gray-100'
+        ? 'bg-primary-200 text-primary-900' 
+        : 'text-primary-700 hover:bg-primary-100'
       }`}
   >
     {children}
@@ -162,8 +162,8 @@ const MobileNavLink = ({
     onClick={onClick}
     className={`flex items-center px-4 py-2 
       ${isActive 
-        ? 'bg-primary-50 text-primary-600' 
-        : 'text-gray-600 hover:bg-gray-100'
+        ? 'bg-primary-200 text-primary-900' 
+        : 'text-primary-700 hover:bg-primary-100'
       }`}
   >
     <span className="mr-2">{children[0]}</span>

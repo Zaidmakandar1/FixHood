@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus, Clock, CheckCircle, XCircle, MessageSquare, Star } from 'lucide-react';
 import { useUser } from '../../contexts/UserContext';
 import { fetchHomeownerJobs, acceptApplication, rejectApplication } from '../../services/jobService';
+import { createRating } from '../../services/ratingService';
 import { JobType } from '../../types/job';
 import JobCard from '../../components/jobs/JobCard';
 
@@ -11,6 +12,11 @@ const HomeOwnerDashboard = () => {
   const [jobs, setJobs] = useState<JobType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('active');
+  const [ratingJob, setRatingJob] = useState<{ jobId: string; fixerId: string } | null>(null);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
+  const [isSubmittingRating, setIsSubmittingRating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadJobs = async () => {
     try {
@@ -30,7 +36,6 @@ const HomeOwnerDashboard = () => {
   const handleAcceptApplication = async (jobId: string, fixerId: string) => {
     try {
       await acceptApplication(jobId, fixerId);
-      // Reload jobs to show updated status
       await loadJobs();
     } catch (error) {
       console.error('Error accepting application:', error);
@@ -40,10 +45,36 @@ const HomeOwnerDashboard = () => {
   const handleRejectApplication = async (jobId: string, fixerId: string) => {
     try {
       await rejectApplication(jobId, fixerId);
-      // Reload jobs to show updated status
       await loadJobs();
     } catch (error) {
       console.error('Error rejecting application:', error);
+    }
+  };
+
+  const handleSubmitRating = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ratingJob) return;
+
+    setIsSubmittingRating(true);
+    setError(null);
+
+    try {
+      await createRating({
+        fixerId: ratingJob.fixerId,
+        jobId: ratingJob.jobId,
+        rating,
+        comment
+      });
+
+      // Reset form and close modal
+      setRatingJob(null);
+      setRating(5);
+      setComment('');
+      await loadJobs(); // Refresh jobs to update UI
+    } catch (err) {
+      setError('Failed to submit rating. Please try again.');
+    } finally {
+      setIsSubmittingRating(false);
     }
   };
 
@@ -62,12 +93,12 @@ const HomeOwnerDashboard = () => {
     <div className="container-custom py-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Homeowner Dashboard</h1>
-          <p className="text-gray-600">Manage your repair requests and fixers</p>
+          <h1 className="text-2xl font-bold text-gray-900">My Jobs</h1>
+          <p className="text-gray-600">Manage your home improvement projects</p>
         </div>
         <Link 
-          to="/create-job" 
-          className="btn btn-primary mt-4 md:mt-0 flex items-center justify-center md:justify-start"
+          to="/jobs/create" 
+          className="btn btn-primary mt-4 md:mt-0 flex items-center justify-center"
         >
           <Plus size={18} className="mr-2" />
           Post New Job
@@ -75,7 +106,7 @@ const HomeOwnerDashboard = () => {
       </div>
 
       {/* Stats overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <StatCard 
           title="Active Jobs" 
           value={jobs.filter(j => ['open', 'assigned'].includes(j.status)).length.toString()} 
@@ -85,11 +116,6 @@ const HomeOwnerDashboard = () => {
           title="Completed Jobs" 
           value={jobs.filter(j => j.status === 'completed').length.toString()} 
           icon={<CheckCircle className="text-success-500" />} 
-        />
-        <StatCard 
-          title="Average Rating" 
-          value={user?.ratings?.average ? user.ratings.average.toFixed(1) : 'N/A'} 
-          icon={<Star className="text-secondary-500" />} 
         />
       </div>
 
@@ -128,7 +154,18 @@ const HomeOwnerDashboard = () => {
                 job={job} 
                 view="homeowner" 
                 actionButton={
-                  job.status === 'assigned' ? (
+                  job.status === 'completed' && !job.rating ? (
+                    <button
+                      onClick={() => setRatingJob({ 
+                        jobId: job._id, 
+                        fixerId: job.assignedFixer.fixerId 
+                      })}
+                      className="btn btn-accent flex items-center"
+                    >
+                      <Star size={16} className="mr-2" />
+                      Rate Fixer
+                    </button>
+                  ) : job.status === 'assigned' ? (
                     <Link to={`/chat/${job._id}`} className="btn btn-accent flex items-center">
                       <MessageSquare size={16} className="mr-2" />
                       Message Fixer
@@ -141,55 +178,90 @@ const HomeOwnerDashboard = () => {
                   ) : null
                 }
               />
-              
-              {/* Show applications for open jobs */}
-              {job.status === 'open' && job.applications && job.applications.length > 0 && (
-                <div className="ml-8 space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Applications ({job.applications.length})</h3>
-                  {job.applications.map((application, index) => (
-                    <div key={index} className="bg-white p-4 rounded-lg border border-gray-200">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h4 className="font-medium text-gray-900">{application.fixerName}</h4>
-                          <p className="text-sm text-gray-500">Applied {new Date(application.createdAt).toLocaleDateString()}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium text-gray-900">${application.price}</p>
-                          <p className="text-sm text-gray-500">Est. {application.estimatedTime}</p>
-                        </div>
-                      </div>
-                      <p className="text-gray-600 mb-4">{application.message}</p>
-                      <div className="flex space-x-2">
-                        <button 
-                          onClick={() => handleAcceptApplication(job._id, application.fixerId)}
-                          className="btn btn-success btn-sm"
-                        >
-                          Accept
-                        </button>
-                        <button 
-                          onClick={() => handleRejectApplication(job._id, application.fixerId)}
-                          className="btn btn-error btn-sm"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           ))
         ) : (
           <div className="text-center py-12 bg-gray-50 rounded-lg">
             <p className="text-gray-600 mb-4">No jobs found in this category</p>
-            {activeTab === 'active' && (
-              <Link to="/create-job" className="btn btn-primary">
-                Post Your First Job
-              </Link>
-            )}
+            <Link to="/jobs/create" className="btn btn-primary">
+              Post Your First Job
+            </Link>
           </div>
         )}
       </div>
+
+      {/* Rating Modal */}
+      {ratingJob && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold mb-4">Rate Your Fixer</h3>
+            <form onSubmit={handleSubmitRating} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Rating
+                </label>
+                <div className="flex items-center space-x-2">
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setRating(value)}
+                      className="focus:outline-none"
+                    >
+                      <Star
+                        size={24}
+                        className={`${
+                          value <= rating
+                            ? 'text-yellow-400 fill-yellow-400'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Comment
+                </label>
+                <textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  className="input w-full h-32"
+                  placeholder="Share your experience with the fixer..."
+                  required
+                />
+              </div>
+
+              {error && (
+                <div className="text-red-600 text-sm">{error}</div>
+              )}
+
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setRatingJob(null)}
+                  className="btn btn-outline"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={isSubmittingRating}
+                >
+                  {isSubmittingRating ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                  ) : (
+                    'Submit Rating'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

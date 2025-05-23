@@ -1,6 +1,5 @@
 const express = require('express');
-import Job from '../models/Job.js';
-
+const Job = require('../models/Job');
 const router = express.Router();
 
 // Get all jobs
@@ -63,20 +62,30 @@ router.post('/', async (req, res) => {
 // POST /api/jobs/:id/apply
 router.post('/:id/apply', async (req, res) => {
   try {
+    console.log('Received application request:', req.body);
     const { fixerId, fixerName, message, price, estimatedTime } = req.body;
     
+    if (!fixerId || !fixerName || !message) {
+      console.log('Missing required fields:', { fixerId, fixerName, message });
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
     const job = await Job.findById(req.params.id);
+    console.log('Found job:', job ? 'yes' : 'no');
     
     if (!job) {
       return res.status(404).json({ error: 'Job not found' });
     }
     
     if (job.status !== 'open') {
+      console.log('Job status is not open:', job.status);
       return res.status(400).json({ error: 'This job is not open for applications' });
     }
     
     // Check if fixer already applied
-    if (job.applications.some(app => app.fixerId === fixerId)) {
+    const hasApplied = job.applications.some(app => app.fixerId === fixerId);
+    if (hasApplied) {
+      console.log('Fixer already applied:', fixerId);
       return res.status(400).json({ error: 'You have already applied for this job' });
     }
     
@@ -91,12 +100,19 @@ router.post('/:id/apply', async (req, res) => {
     };
     
     job.applications.push(application);
-    await job.save();
+    console.log('Added application to job');
     
-    res.status(201).json(application);
+    try {
+      await job.save();
+      console.log('Saved job successfully');
+      return res.status(201).json(application);
+    } catch (saveError) {
+      console.error('Error saving job application:', saveError);
+      return res.status(500).json({ error: 'Failed to save application' });
+    }
   } catch (error) {
     console.error(`Error applying for job ${req.params.id}:`, error);
-    res.status(400).json({ error: 'Failed to apply for job' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -199,4 +215,4 @@ router.get('/fixer/:id', async (req, res) => {
   }
 });
 
-export default router;
+module.exports = router;

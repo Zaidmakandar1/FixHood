@@ -61,9 +61,10 @@ const JobDetails = () => {
     
     setIsSubmitting(true);
     setError(null);
+    setSuccess(null);
     
     try {
-      await applyForJob(job._id, {
+      const response = await applyForJob(job._id, {
         fixerId: user.id,
         fixerName: user.name,
         message: data.message,
@@ -92,9 +93,10 @@ const JobDetails = () => {
       
       setSuccess('Your application has been submitted successfully!');
       setShowApplyForm(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error applying for job:', error);
-      setError('Failed to submit application. Please try again.');
+      setError(error.message || 'Failed to submit application. Please try again.');
+      // Don't hide the form on error so user can try again
     } finally {
       setIsSubmitting(false);
     }

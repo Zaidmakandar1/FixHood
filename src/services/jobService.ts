@@ -1,78 +1,25 @@
-import axios from 'axios';
+import api from './api';
 import { JobType, JobApplication } from '../types/job';
 
-const API_BASE_URL = 'http://localhost:5000/api';
-
-// Function to get auth token
-const getAuthToken = () => {
-  const token = localStorage.getItem('fixitlocal-token');
-  console.log('Raw token from localStorage:', token); // Debug raw token
-
-  if (!token) {
-    console.error('No token found in localStorage');
-    window.location.href = '/login';
-    throw new Error('No authentication token found. Please log in.');
+// Function to get user data
+const getUserData = () => {
+  const userData = localStorage.getItem('fixitlocal-user');
+  if (!userData) {
+    throw new Error('User data not found. Please log in again.');
   }
 
-  // Remove any quotes and whitespace that might be present in the token
-  const cleanToken = token.replace(/['"\s]/g, '');
-  console.log('Cleaned token:', cleanToken); // Debug cleaned token
-
-  // Basic JWT validation
-  try {
-    const parts = cleanToken.split('.');
-    if (parts.length !== 3) {
-      console.error('Invalid token format: not a valid JWT');
-      localStorage.removeItem('fixitlocal-token');
-      window.location.href = '/login';
-      throw new Error('Invalid token format');
-    }
-
-    // Try to decode the payload
-    const payload = JSON.parse(atob(parts[1]));
-    console.log('Decoded token payload:', payload); // Debug decoded payload
-
-    // Check if token is expired
-    const expirationTime = payload.exp * 1000; // Convert to milliseconds
-    if (Date.now() >= expirationTime) {
-      console.error('Token has expired');
-      localStorage.removeItem('fixitlocal-token');
-      window.location.href = '/login';
-      throw new Error('Token has expired. Please log in again.');
-    }
-
-    return cleanToken;
-  } catch (error) {
-    console.error('Token validation error:', error);
-    localStorage.removeItem('fixitlocal-token');
-    window.location.href = '/login';
-    throw new Error('Invalid authentication token. Please log in again.');
+  const user = JSON.parse(userData);
+  if (!user.id || !user.name) {
+    throw new Error('Invalid user data. Please log in again.');
   }
-};
 
-// Function to get auth headers
-const getAuthHeaders = () => {
-  try {
-    const token = getAuthToken();
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json'
-    };
-    console.log('Request headers:', headers); // Debug headers
-    return headers;
-  } catch (error) {
-    console.error('Authentication error:', error);
-    window.location.href = '/login';
-    throw error;
-  }
+  return user;
 };
 
 // Fetch available jobs for fixers
 export const fetchJobs = async (coordinates?: { lat: number; lng: number }) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/jobs`, {
-      headers: getAuthHeaders(),
+    const response = await api.get('/jobs', {
       params: coordinates ? { near: `${coordinates.lat},${coordinates.lng}` } : undefined
     });
     return response.data;
@@ -96,9 +43,7 @@ export const fetchJobs = async (coordinates?: { lat: number; lng: number }) => {
 // Fetch homeowner's jobs
 export const fetchHomeownerJobs = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/jobs/homeowner`, {
-      headers: getAuthHeaders()
-    });
+    const response = await api.get('/jobs/homeowner');
     return response.data;
   } catch (error: any) {
     if (error.response) {
@@ -120,9 +65,7 @@ export const fetchHomeownerJobs = async () => {
 // Fetch fixer's jobs
 export const fetchFixerJobs = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/jobs/my-applications`, {
-      headers: getAuthHeaders()
-    });
+    const response = await api.get('/jobs/my-applications');
     return response.data;
   } catch (error) {
     console.error('Error fetching fixer jobs:', error);
@@ -133,9 +76,7 @@ export const fetchFixerJobs = async () => {
 // Fetch a specific job by ID
 export const fetchJobById = async (jobId: string) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/jobs/${jobId}`, {
-      headers: getAuthHeaders()
-    });
+    const response = await api.get(`/jobs/${jobId}`);
     return response.data;
   } catch (error) {
     console.error(`Error fetching job ${jobId}:`, error);
@@ -146,22 +87,8 @@ export const fetchJobById = async (jobId: string) => {
 // Create a new job
 export const createJob = async (jobData: Partial<JobType>) => {
   try {
-    // Check authentication first
-    const headers = getAuthHeaders();
-    if (!headers) {
-      throw new Error('Authentication failed. Please log in again.');
-    }
-
-    // Get user data from localStorage
-    const userData = localStorage.getItem('fixitlocal-user');
-    if (!userData) {
-      throw new Error('User data not found. Please log in again.');
-    }
-
-    const user = JSON.parse(userData);
-    if (!user.id || !user.name) {
-      throw new Error('Invalid user data. Please log in again.');
-    }
+    // Get user data
+    const user = getUserData();
 
     // Validate required fields
     if (!jobData.title || !jobData.description || !jobData.location) {
@@ -191,34 +118,8 @@ export const createJob = async (jobData: Partial<JobType>) => {
     }
 
     console.log('Creating job with data:', formattedJobData);
-    console.log('Using endpoint:', `${API_BASE_URL}/jobs`);
 
-    const response = await axios.post(`${API_BASE_URL}/jobs`, formattedJobData, {
-      headers,
-      validateStatus: (status) => {
-        return status < 500; // Don't reject if status is less than 500
-      }
-    });
-
-    if (response.status === 403) {
-      console.error('Authentication failed:', response.data);
-      localStorage.removeItem('fixitlocal-token');
-      window.location.href = '/login';
-      throw new Error('Your session has expired. Please log in again.');
-    }
-
-    if (response.status === 500) {
-      console.error('Server error details:', response.data);
-      // Try to extract the error message from the response
-      const errorMessage = response.data?.message || response.data?.error || 'Server error. Please try again.';
-      throw new Error(errorMessage);
-    }
-
-    if (response.status !== 200 && response.status !== 201) {
-      console.error('Request failed:', response.data);
-      throw new Error(response.data?.message || 'Failed to create job');
-    }
-
+    const response = await api.post('/jobs', formattedJobData);
     console.log('Job creation response:', response.data);
     return response.data;
   } catch (error: any) {
@@ -239,7 +140,6 @@ export const createJob = async (jobData: Partial<JobType>) => {
         throw new Error('Job creation endpoint not found. Please check the API configuration.');
       } else if (error.response.status === 500) {
         console.error('Server error details:', error.response.data);
-        // Try to extract the error message from the response
         const errorMessage = error.response.data?.message || error.response.data?.error || 'Server error. Please try again.';
         throw new Error(errorMessage);
       } else {
@@ -254,24 +154,26 @@ export const createJob = async (jobData: Partial<JobType>) => {
 };
 
 // Apply for a job
-export const applyForJob = async (jobId: string, applicationData: Partial<JobApplication>) => {
+export const applyForJob = async (jobId: string, applicationData: any) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/jobs/${jobId}/apply`, applicationData, {
-      headers: getAuthHeaders()
-    });
+    console.log('Sending application:', { jobId, applicationData });
+    const response = await api.post(`/jobs/${jobId}/apply`, applicationData);
+    
+    console.log('Application successful:', response.data);
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error applying for job ${jobId}:`, error);
-    throw error;
+    if (error.response) {
+      throw new Error(error.response.data?.error || error.response.data?.message || 'Failed to apply for job');
+    }
+    throw new Error(error.message || 'Failed to apply for job');
   }
 };
 
 // Accept an application
 export const acceptApplication = async (jobId: string, fixerId: string) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/jobs/${jobId}/accept`, { fixerId }, {
-      headers: getAuthHeaders()
-    });
+    const response = await api.post(`/jobs/${jobId}/accept`, { fixerId });
     return response.data;
   } catch (error) {
     console.error(`Error accepting application for job ${jobId}:`, error);
@@ -282,9 +184,7 @@ export const acceptApplication = async (jobId: string, fixerId: string) => {
 // Reject an application
 export const rejectApplication = async (jobId: string, fixerId: string) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/jobs/${jobId}/reject`, { fixerId }, {
-      headers: getAuthHeaders()
-    });
+    const response = await api.post(`/jobs/${jobId}/reject`, { fixerId });
     return response.data;
   } catch (error) {
     console.error(`Error rejecting application for job ${jobId}:`, error);
@@ -295,12 +195,21 @@ export const rejectApplication = async (jobId: string, fixerId: string) => {
 // Complete a job
 export const completeJob = async (jobId: string) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/jobs/${jobId}/complete`, {}, {
-      headers: getAuthHeaders()
-    });
+    const response = await api.post(`/jobs/${jobId}/complete`);
     return response.data;
   } catch (error) {
     console.error(`Error completing job ${jobId}:`, error);
+    throw error;
+  }
+};
+
+// Mark job as completed by homeowner
+export const markJobAsCompleted = async (jobId: string) => {
+  try {
+    const response = await api.post(`/jobs/${jobId}/mark-completed`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error marking job ${jobId} as completed:`, error);
     throw error;
   }
 };

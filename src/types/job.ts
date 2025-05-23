@@ -10,6 +10,17 @@ export type JobApplication = {
   status: 'pending' | 'accepted' | 'rejected';
 };
 
+export type Rating = {
+  _id: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  homeownerId: {
+    _id: string;
+    name: string;
+  };
+};
+
 export type JobType = {
   _id: string;
   homeownerId: string;
@@ -31,6 +42,7 @@ export type JobType = {
     fixerId: string;
     fixerName: string;
   };
+  rating?: Rating;
   createdAt: string;
   completedAt?: string;
 };
