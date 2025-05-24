@@ -13,6 +13,7 @@ import {
 } from '../../services/chatService';
 import { JobType } from '../../types/job';
 import { MessageType } from '../../types/chat';
+import BotChatModal from '../../components/BotChatModal';
 
 const ChatPage = () => {
   const { jobId } = useParams<{ jobId: string }>();
@@ -27,6 +28,7 @@ const ChatPage = () => {
   const [isCompleting, setIsCompleting] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [botOpen, setBotOpen] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -166,7 +168,14 @@ const ChatPage = () => {
               <span>Conversation with {otherUser.name}</span>
             </div>
           </div>
-          
+          <button
+            className="btn btn-secondary flex items-center ml-2"
+            onClick={() => setBotOpen(true)}
+            type="button"
+          >
+            <MessageSquare size={16} className="mr-1" />
+            Chat with Bot
+          </button>
           {/* Complete job button (for homeowner only) */}
           {role === 'homeowner' && job.status === 'assigned' && (
             <button 
@@ -271,6 +280,8 @@ const ChatPage = () => {
           )}
         </form>
       </div>
+      
+      <BotChatModal open={botOpen} onClose={() => setBotOpen(false)} />
     </div>
   );
 };

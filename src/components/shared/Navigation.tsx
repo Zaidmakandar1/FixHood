@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useUser } from '../../contexts/UserContext';
-import { Menu, X, Home, Briefcase, MessageSquare, User, LogOut } from 'lucide-react';
+import { Menu, X, Home, Briefcase, User, LogOut } from 'lucide-react';
+import BotChatModal from '../BotChatModal';
+import { MessageSquare } from 'lucide-react';
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [botModalOpen, setBotModalOpen] = useState(false);
   const { user, logout, role } = useUser();
   const location = useLocation();
 
@@ -38,6 +41,14 @@ const Navigation = () => {
                   <Home size={18} />
                   <span>Dashboard</span>
                 </NavLink>
+                <button
+                  className="flex items-center space-x-1 text-primary-700 hover:text-primary-900 transition-colors"
+                  onClick={() => setBotModalOpen(true)}
+                  title="Chat with Bot"
+                >
+                  <MessageSquare size={18} />
+                  <span>AIchat</span>
+                </button>
                 <NavLink to="/jobs/create" isActive={isActive('/jobs/create')}>
                   <Briefcase size={18} />
                   <span>Post Job</span>
@@ -49,6 +60,14 @@ const Navigation = () => {
                   <Home size={18} />
                   <span>Dashboard</span>
                 </NavLink>
+                <button
+                  className="flex items-center space-x-1 text-primary-700 hover:text-primary-900 transition-colors"
+                  onClick={() => setBotModalOpen(true)}
+                  title="Chat with Bot"
+                >
+                  <MessageSquare size={18} />
+                  <span>AIchat</span>
+                </button>
                 <NavLink to="/jobs" isActive={isActive('/jobs')}>
                   <Briefcase size={18} />
                   <span>Find Jobs</span>
@@ -127,6 +146,7 @@ const Navigation = () => {
           </div>
         </div>
       )}
+      <BotChatModal open={botModalOpen} onClose={() => setBotModalOpen(false)} />
     </nav>
   );
 };

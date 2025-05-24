@@ -1,5 +1,5 @@
-import express from 'express';
-import axios from 'axios';
+const express = require('express');
+const axios = require('axios');
 
 const router = express.Router();
 
@@ -137,4 +137,57 @@ router.post('/enhance-job', async (req, res) => {
   }
 });
 
-export default router;
+// Chat with Ollama LLM
+// POST /api/ollama/chat
+router.post('/chat', async (req, res) => {
+  const { message, model } = req.body;
+  if (!message) {
+    return res.status(400).json({ message: 'Message is required' });
+  }
+  try {
+    // Send the message to Ollama API (handle streaming response)
+    const response = await axios({
+      method: 'post',
+      url: 'http://127.0.0.1:11434/api/chat',
+      data: {
+        model: model || 'gemma3:1b',
+        messages: [
+          { role: 'user', content: message }
+        ],
+        // Add system prompt to instruct the model to answer concisely
+        options: {
+          system: 'Only answer the user question directly and concisely. Do not add extra information, greetings, or follow-up questions. Limit your answer to 3 short sentences. Do not exceed 30 words. Do not add explanations, lists, or extra context.'
+        }
+      },
+      responseType: 'stream',
+    });
+
+    let fullContent = '';
+    let buffer = '';
+    await new Promise((resolve, reject) => {
+      response.data.on('data', (chunk) => {
+        buffer += chunk.toString();
+        let lines = buffer.split('\n');
+        buffer = lines.pop(); // last line may be incomplete
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const parsed = JSON.parse(line);
+            if (parsed.message && parsed.message.content) {
+              fullContent += parsed.message.content;
+            }
+          } catch (e) { /* ignore parse errors */ }
+        }
+      });
+      response.data.on('end', resolve);
+      response.data.on('error', reject);
+    });
+
+    res.json({ role: 'assistant', content: fullContent });
+  } catch (error) {
+    console.error('Ollama API error:', error.message);
+    res.status(500).json({ message: 'Failed to get response from Ollama', error: error.message });
+  }
+});
+
+module.exports = router;

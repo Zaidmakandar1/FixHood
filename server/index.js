@@ -11,6 +11,7 @@ const userRoutes = require('./routes/users');
 const jobRoutes = require('./routes/jobs');
 const chatRoutes = require('./routes/chat');
 const ratingRoutes = require('./routes/ratings');
+const llmRoutes = require('./routes/llmRoutes');
 const jwt = require('jsonwebtoken');
 const Message = require('./models/Message');
 
@@ -121,6 +122,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/ratings', ratingRoutes);
+app.use('/api/ollama', llmRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
