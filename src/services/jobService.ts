@@ -76,10 +76,36 @@ export const fetchFixerJobs = async () => {
 // Fetch a specific job by ID
 export const fetchJobById = async (jobId: string) => {
   try {
+    if (!jobId) {
+      throw new Error('Job ID is required');
+    }
+
     const response = await api.get(`/jobs/${jobId}`);
+    
+    if (!response.data) {
+      throw new Error('No data received from server');
+    }
+
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error fetching job ${jobId}:`, error);
+    
+    if (error.response) {
+      // Handle specific HTTP error responses
+      if (error.response.status === 404) {
+        throw new Error('Job not found');
+      } else if (error.response.status === 403) {
+        throw new Error('You do not have permission to view this job');
+      } else if (error.response.status === 401) {
+        throw new Error('Please log in to view job details');
+      } else {
+        throw new Error(error.response.data?.message || 'Failed to fetch job details');
+      }
+    } else if (error.request) {
+      // Handle network errors
+      throw new Error('Could not connect to server. Please check your internet connection.');
+    }
+    
     throw error;
   }
 };

@@ -11,6 +11,10 @@ type JobCardProps = {
 };
 
 const JobCard = ({ job, view, actionButton, onMarkCompleted }: JobCardProps) => {
+  if (!job || !job._id) {
+    return null; // Don't render anything if job data is invalid
+  }
+
   const getStatusBadgeClass = () => {
     switch (job.status) {
       case 'open':
@@ -108,13 +112,15 @@ const JobCard = ({ job, view, actionButton, onMarkCompleted }: JobCardProps) => 
                 Complete
               </button>
             )}
-            <Link
-              to={`/chat/${job._id}`}
-              className="btn btn-outline flex items-center transform transition hover:scale-105"
-            >
-              <MessageSquare size={16} className="mr-2" />
-              Chat
-            </Link>
+            {job.status === 'assigned' && (
+              <Link
+                to={`/chat/${job._id}`}
+                className="btn btn-outline flex items-center transform transition hover:scale-105"
+              >
+                <MessageSquare size={16} className="mr-2" />
+                Chat
+              </Link>
+            )}
           </div>
         </div>
       </div>

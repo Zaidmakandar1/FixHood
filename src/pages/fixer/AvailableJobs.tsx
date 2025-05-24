@@ -8,14 +8,21 @@ import JobCard from '../../components/jobs/JobCard';
 const AvailableJobs = () => {
   const [jobs, setJobs] = useState<JobType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadJobs = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
         const fetchedJobs = await fetchJobs();
-        setJobs(fetchedJobs);
-      } catch (error) {
+        
+        // Filter out any invalid job data
+        const validJobs = fetchedJobs.filter(job => job && job._id && job.status === 'open');
+        setJobs(validJobs);
+      } catch (error: any) {
         console.error('Error fetching jobs:', error);
+        setError(error.message || 'Failed to load available jobs. Please try again.');
       } finally {
         setIsLoading(false);
       }
@@ -33,7 +40,18 @@ const AvailableJobs = () => {
         </div>
       </div>
 
-      {/* Job listings */}
+      {error && (
+        <div className="bg-red-50 p-4 rounded-lg border border-red-100 mb-6 animate-fade-in">
+          <p className="text-red-600">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-2 text-red-700 hover:text-red-800 font-medium"
+          >
+            Try Again
+          </button>
+        </div>
+      )}
+
       <div className="space-y-4">
         {isLoading ? (
           <div className="text-center py-12 animate-fade-in">

@@ -15,7 +15,7 @@ type ApplicationForm = {
 };
 
 const JobDetails = () => {
-  const { id } = useParams<{ id: string }>();
+  const { jobId } = useParams<{ jobId: string }>();
   const navigate = useNavigate();
   const { user } = useUser();
   const { role } = useUserRole();
@@ -31,27 +31,44 @@ const JobDetails = () => {
 
   useEffect(() => {
     const loadJob = async () => {
-      if (!id) return;
+      if (!jobId) {
+        setError('No job ID provided');
+        setIsLoading(false);
+        return;
+      }
       
       try {
-        const fetchedJob = await fetchJobById(id);
-        setJob(fetchedJob);
-      } catch (error) {
+        setIsLoading(true);
+        setError(null);
+        const fetchedJob = await fetchJobById(jobId);
+        
+        if (!fetchedJob || !fetchedJob._id) {
+          setError('Job not found');
+          setJob(null);
+        } else {
+          setJob(fetchedJob);
+          setError(null);
+        }
+      } catch (error: any) {
         console.error('Error fetching job:', error);
-        setError('Failed to load job details. Please try again later.');
+        setError(error.message || 'Failed to load job details. Please try again later.');
+        setJob(null);
       } finally {
         setIsLoading(false);
       }
     };
     
     loadJob();
-  }, [id]);
+  }, [jobId]);
   
   const isOwner = job?.homeownerId === user?.id;
   const hasApplied = job?.applications?.some(app => app.fixerId === user?.id);
   
   const onApply: SubmitHandler<ApplicationForm> = async (data) => {
-    if (!job || !user) return;
+    if (!job?._id || !user) {
+      setError('Unable to submit application. Please try again.');
+      return;
+    }
     
     setIsSubmitting(true);
     setError(null);
@@ -130,16 +147,20 @@ const JobDetails = () => {
   };
 
   const getStatusBadgeClass = () => {
-    if (job?.status === 'open') return 'bg-accent-100 text-accent-800';
-    if (job?.status === 'assigned') return 'bg-primary-100 text-primary-800';
-    if (job?.status === 'completed') return 'bg-success-100 text-success-800';
+    if (!job) return '';
+    
+    if (job.status === 'open') return 'bg-accent-100 text-accent-800';
+    if (job.status === 'assigned') return 'bg-primary-100 text-primary-800';
+    if (job.status === 'completed') return 'bg-success-100 text-success-800';
     return 'bg-red-100 text-red-800';
   };
 
   const getStatusLabel = () => {
-    if (job?.status === 'open') return 'Open';
-    if (job?.status === 'assigned') return 'In Progress';
-    if (job?.status === 'completed') return 'Completed';
+    if (!job) return '';
+    
+    if (job.status === 'open') return 'Open';
+    if (job.status === 'assigned') return 'In Progress';
+    if (job.status === 'completed') return 'Completed';
     return 'Cancelled';
   };
 
@@ -147,6 +168,20 @@ const JobDetails = () => {
     return (
       <div className="container-custom py-12 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container-custom py-12">
+        <div className="bg-red-50 p-4 rounded-lg border border-red-100 animate-fade-in">
+          <h2 className="text-xl font-bold text-red-700 mb-2">Error</h2>
+          <p className="text-red-600 mb-4">{error}</p>
+          <Link to="/jobs" className="btn btn-primary animate-fade-in">
+            Browse Available Jobs
+          </Link>
+        </div>
       </div>
     );
   }
@@ -221,8 +256,8 @@ const JobDetails = () => {
                 </div>
 
                 {/* Tags */}
-                <div className="flex flex-wrap gap-2 mb-4 animate-slide-in">
-                  {job.tags.map((tag, index) => (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {(job.tags || []).map((tag, index) => (
                     <span
                       key={index}
                       className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 transform transition hover:scale-110"
