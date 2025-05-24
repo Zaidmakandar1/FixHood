@@ -4,7 +4,7 @@ import { useUser } from '../../contexts/UserContext';
 import useUserRole from '../../hooks/useUserRole';
 
 const ProfilePage = () => {
-  const { user, setUser } = useUser();
+  const { user } = useUser();
   const { role } = useUserRole();
   
   const [isEditing, setIsEditing] = useState(false);
@@ -13,23 +13,24 @@ const ProfilePage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // In a real app, this would be an API call to update the user profile
-    setTimeout(() => {
-      if (user) {
-        const updatedUser = { ...user, name, email };
-        setUser(updatedUser);
-        setIsEditing(false);
-        setSuccess('Profile updated successfully');
-        
-        // Clear success message after 3 seconds
-        setTimeout(() => setSuccess(null), 3000);
-      }
+    try {
+      // In a real app, this would be an API call to update the user profile
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setIsEditing(false);
+      setSuccess('Profile updated successfully');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
   };
   
   if (!user) {
@@ -41,22 +42,22 @@ const ProfilePage = () => {
   }
   
   return (
-    <div className="container-custom py-6 max-w-4xl">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Your Profile</h1>
+    <div className="container-custom py-6 max-w-4xl animate-fade-in">
+      <h1 className="text-2xl font-bold text-gray-900 mb-6 animate-fade-in-up">Your Profile</h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main profile */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl shadow-md p-6">
+        <div className="lg:col-span-2 animate-fade-in-up [animation-delay:100ms]">
+          <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
             {success && (
-              <div className="mb-4 flex items-center bg-green-50 text-green-800 p-3 rounded-lg">
+              <div className="mb-4 flex items-center bg-green-50 text-green-800 p-3 rounded-lg animate-fade-in">
                 <CheckCircle size={18} className="mr-2 text-green-600" />
                 {success}
               </div>
             )}
             
             {isEditing ? (
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit} className="animate-fade-in">
                 <div className="mb-4">
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                     Full Name
@@ -64,7 +65,7 @@ const ProfilePage = () => {
                   <input
                     id="name"
                     type="text"
-                    className="input"
+                    className="input transition-all duration-200 hover:border-primary-400 focus:border-primary-500"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
@@ -78,7 +79,7 @@ const ProfilePage = () => {
                   <input
                     id="email"
                     type="email"
-                    className="input"
+                    className="input transition-all duration-200 hover:border-primary-400 focus:border-primary-500"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -88,7 +89,7 @@ const ProfilePage = () => {
                 <div className="flex justify-end space-x-3">
                   <button
                     type="button"
-                    className="btn btn-outline"
+                    className="btn btn-outline transform transition hover:scale-105"
                     onClick={() => {
                       setIsEditing(false);
                       setName(user.name);
@@ -100,14 +101,11 @@ const ProfilePage = () => {
                   
                   <button
                     type="submit"
-                    className="btn btn-primary"
+                    className="btn btn-primary transform transition hover:scale-105"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
-                      <div className="flex items-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                        Saving...
-                      </div>
+                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
                     ) : (
                       'Save Changes'
                     )}
@@ -115,90 +113,72 @@ const ProfilePage = () => {
                 </div>
               </form>
             ) : (
-              <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold">Personal Information</h2>
+              <div className="animate-fade-in">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">{user.name}</h2>
+                    <p className="text-gray-600">{user.email}</p>
+                  </div>
                   <button
-                    className="text-primary-600 hover:text-primary-800 flex items-center text-sm"
                     onClick={() => setIsEditing(true)}
+                    className="btn btn-outline flex items-center transform transition hover:scale-105"
                   >
-                    <Edit2 size={14} className="mr-1" />
+                    <Edit2 size={16} className="mr-2" />
                     Edit Profile
                   </button>
                 </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1">Full Name</p>
-                    <p className="font-medium">{user.name}</p>
+
+                <div className="border-t border-gray-200 pt-4">
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Account Details</h3>
+                  <div className="space-y-2 text-gray-600">
+                    <p>Role: {role}</p>
+                    <p>Account Status: Active</p>
                   </div>
-                  
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1">Email Address</p>
-                    <p className="font-medium">{user.email}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1">Role</p>
-                    <p className="font-medium capitalize">{role}</p>
-                  </div>
-                  
-                  {user.location && (
-                    <div>
-                      <p className="text-sm text-gray-500 mb-1">Location</p>
-                      <p className="font-medium">
-                        Latitude: {user.location.lat.toFixed(4)}, Longitude: {user.location.lng.toFixed(4)}
-                      </p>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
           </div>
         </div>
-        
+
         {/* Stats and ratings */}
-        <div>
-          <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">Stats</h2>
+        <div className="animate-fade-in-up [animation-delay:200ms]">
+          <div className="bg-white rounded-xl shadow-md p-6 transition-all duration-300 hover:shadow-lg">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Statistics</h3>
             
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <p className="text-gray-600">Total Jobs</p>
-                <p className="font-medium">0</p>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <p className="text-gray-600">Completed Jobs</p>
-                <p className="font-medium">0</p>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <p className="text-gray-600">Average Rating</p>
-                <div className="flex items-center">
-                  <Star size={16} className="text-secondary-500 mr-1" />
-                  <p className="font-medium">
-                    {user?.ratings?.average ? user.ratings.average.toFixed(1) : 'N/A'}
-                  </p>
+            {role === 'fixer' ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Completed Jobs</span>
+                  <span className="text-primary-600 font-medium">24</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Average Rating</span>
+                  <div className="flex items-center">
+                    <Star size={16} className="text-yellow-400 mr-1" />
+                    <span className="text-primary-600 font-medium">4.8</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Success Rate</span>
+                  <span className="text-primary-600 font-medium">98%</span>
                 </div>
               </div>
-              
-              <div className="flex justify-between items-center">
-                <p className="text-gray-600">Member Since</p>
-                <p className="font-medium">2023</p>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Posted Jobs</span>
+                  <span className="text-primary-600 font-medium">12</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Completed Jobs</span>
+                  <span className="text-primary-600 font-medium">8</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Active Jobs</span>
+                  <span className="text-primary-600 font-medium">2</span>
+                </div>
               </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">Recent Reviews</h2>
-            
-            <div className="text-center py-8">
-              <div className="bg-gray-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3">
-                <Star size={24} className="text-gray-400" />
-              </div>
-              <p className="text-gray-600">No reviews yet</p>
-            </div>
+            )}
           </div>
         </div>
       </div>

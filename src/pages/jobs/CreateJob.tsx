@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, SubmitHandler } from 'react-hook-form';
-import { Camera, Loader2, Upload, X } from 'lucide-react';
+import { Camera, Loader2, X } from 'lucide-react';
 import useGeolocation from '../../hooks/useGeolocation';
 import { createJob } from '../../services/jobService';
 import { JobStatus } from '../../types/job';
@@ -71,20 +71,20 @@ const CreateJob = () => {
   };
   
   return (
-    <div className="container-custom py-6">
+    <div className="container-custom py-6 animate-fade-in">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Post a New Job</h1>
-        <p className="text-gray-600 mb-6">Describe what needs fixing and get connected with qualified professionals</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-1 animate-fade-in-up">Post a New Job</h1>
+        <p className="text-gray-600 mb-6 animate-fade-in-up [animation-delay:100ms]">Describe what needs fixing and get connected with qualified professionals</p>
         
-        <div className="bg-white rounded-xl shadow-md p-6">
+        <div className="bg-white rounded-xl shadow-md p-6 animate-fade-in-up [animation-delay:200ms] hover:shadow-lg transition-shadow duration-300">
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg animate-shake">
               <p className="text-sm text-red-600">{error}</p>
             </div>
           )}
           
           {locationError && (
-            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg animate-fade-in">
               <p className="text-sm text-yellow-600">
                 <strong>Location access required:</strong> {locationError}
               </p>
@@ -93,7 +93,7 @@ const CreateJob = () => {
           
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Job Title */}
-            <div>
+            <div className="animate-fade-in-up [animation-delay:300ms]">
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
                 Job Title
               </label>
@@ -110,7 +110,7 @@ const CreateJob = () => {
             </div>
             
             {/* Job Description */}
-            <div>
+            <div className="animate-fade-in-up [animation-delay:400ms]">
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
                 Job Description
               </label>
@@ -165,72 +165,63 @@ const CreateJob = () => {
             </div>
             
             {/* Image Upload */}
-            <div>
+            <div className="animate-fade-in-up [animation-delay:500ms]">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Add Photos (Optional)
               </label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-500 transition-colors duration-200">
                 <div className="space-y-1 text-center">
                   {imagePreview ? (
-                    <div className="relative">
+                    <div className="relative inline-block animate-fade-in">
                       <img
                         src={imagePreview}
                         alt="Preview"
-                        className="mx-auto h-32 w-auto object-cover rounded-md"
+                        className="h-32 w-auto rounded-lg object-cover"
                       />
                       <button
                         type="button"
                         onClick={removeImage}
-                        className="absolute -top-2 -right-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200"
+                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors duration-200"
                       >
                         <X size={16} />
                       </button>
                     </div>
                   ) : (
-                    <>
+                    <div className="flex flex-col items-center">
                       <Camera className="mx-auto h-12 w-12 text-gray-400" />
                       <div className="flex text-sm text-gray-600">
-                        <label
-                          htmlFor="image-upload"
-                          className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500"
-                        >
-                          <span>Upload a photo</span>
+                        <label htmlFor="image-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                          <span>Upload a file</span>
                           <input
                             id="image-upload"
-                            name="image-upload"
                             type="file"
                             className="sr-only"
                             accept="image/*"
                             onChange={handleImageChange}
                           />
                         </label>
-                        <p className="pl-1">or drag and drop</p>
                       </div>
-                      <p className="text-xs text-gray-500">
-                        PNG, JPG, GIF up to 10MB
-                      </p>
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin mr-2" />
-                    Creating Job...
-                  </>
-                ) : (
-                  'Post Job'
-                )}
-              </button>
-            </div>
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed animate-fade-in-up [animation-delay:600ms]"
+            >
+              {isSubmitting ? (
+                <div className="flex items-center justify-center">
+                  <Loader2 className="animate-spin mr-2" size={20} />
+                  Creating Job...
+                </div>
+              ) : (
+                'Create Job'
+              )}
+            </button>
           </form>
         </div>
       </div>

@@ -35,7 +35,7 @@ export type JobType = {
   locationName?: string;
   category?: string;
   estimatedBudget?: string;
-  tags: string[];
+  tags?: string[];
   status: JobStatus;
   applications?: JobApplication[];
   assignedFixer?: {

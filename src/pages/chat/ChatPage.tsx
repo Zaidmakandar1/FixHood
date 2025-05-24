@@ -142,11 +142,11 @@ const ChatPage = () => {
       </div>
     );
   }
-  
+
   if (!job || !otherUser) {
     return (
-      <div className="container-custom py-12">
-        <div className="bg-red-50 p-4 rounded-lg border border-red-100">
+      <div className="container-custom py-12 animate-fade-in">
+        <div className="bg-red-50 p-6 rounded-xl border border-red-100">
           <h2 className="text-xl font-bold text-red-700 mb-2">Conversation Not Found</h2>
           <p className="text-red-600 mb-4">
             We couldn't find this conversation. It may have been removed or you may have followed an invalid link.
@@ -155,61 +155,12 @@ const ChatPage = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="container-custom py-6 max-w-4xl">
-      {/* Job header */}
-      <div className="bg-white rounded-xl shadow-md p-4 mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">{job.title}</h1>
-            <div className="flex items-center text-sm text-gray-500 mt-1">
-              <ChevronLeft size={16} />
-              <span>Conversation with {otherUser.name}</span>
-            </div>
-          </div>
-          <button
-            className="btn btn-secondary flex items-center ml-2"
-            onClick={() => setBotOpen(true)}
-            type="button"
-          >
-            <MessageSquare size={16} className="mr-1" />
-            Chat with Bot
-          </button>
-          {/* Complete job button (for homeowner only) */}
-          {role === 'homeowner' && job.status === 'assigned' && (
-            <button 
-              onClick={handleCompleteJob}
-              disabled={isCompleting}
-              className="btn btn-success flex items-center"
-            >
-              {isCompleting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <CheckCircle size={16} className="mr-2" />
-                  Mark Complete
-                </>
-              )}
-            </button>
-          )}
-          
-          {/* Show badge if job is completed */}
-          {job.status === 'completed' && (
-            <span className="badge bg-success-100 text-success-800 flex items-center">
-              <CheckCircle size={14} className="mr-1" />
-              Completed
-            </span>
-          )}
-        </div>
-      </div>
-      
       {/* Success message */}
       {success && (
-        <div className="bg-green-50 p-4 rounded-lg border border-green-100 mb-6 flex items-start">
+        <div className="bg-green-50 p-4 rounded-xl border border-green-100 mb-6 flex items-start animate-fade-in">
           <CheckCircle size={20} className="text-green-500 mr-2 mt-0.5 flex-shrink-0" />
           <p className="text-green-800">{success}</p>
         </div>
@@ -217,19 +168,63 @@ const ChatPage = () => {
       
       {/* Error message */}
       {error && (
-        <div className="bg-red-50 p-4 rounded-lg border border-red-100 mb-6 flex items-start">
+        <div className="bg-red-50 p-4 rounded-xl border border-red-100 mb-6 flex items-start animate-fade-in">
           <XCircle size={20} className="text-red-500 mr-2 mt-0.5 flex-shrink-0" />
           <p className="text-red-800">{error}</p>
         </div>
       )}
       
       {/* Chat container */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden h-[calc(100vh-300px)] flex flex-col">
+      <div className="bg-white rounded-xl shadow-xl overflow-hidden h-[calc(100vh-300px)] flex flex-col animate-fade-in-up">
+        {/* Header */}
+        <div className="bg-gray-50 border-b border-gray-200 p-4">
+          <div className="flex items-center justify-between animate-fade-in">
+            <div>
+              <h1 className="text-xl font-bold text-gray-900 transform transition hover:scale-105">{job.title}</h1>
+              <div className="flex items-center text-sm text-gray-500 mt-1">
+                <ChevronLeft size={16} className="transform transition hover:translate-x-1" />
+                <span>Conversation with {otherUser.name}</span>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              <button
+                className="btn btn-secondary flex items-center transform transition hover:scale-105"
+                onClick={() => setBotOpen(true)}
+                type="button"
+              >
+                <MessageSquare size={16} className="mr-2" />
+                Chat with Bot
+              </button>
+              
+              {role === 'homeowner' && job.status === 'assigned' && (
+                <button 
+                  onClick={handleCompleteJob}
+                  disabled={isCompleting}
+                  className="btn btn-success flex items-center transform transition hover:scale-105"
+                >
+                  {isCompleting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle size={16} className="mr-2" />
+                      Mark Complete
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Messages area */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+            <div className="text-center py-16 animate-fade-in">
+              <div className="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 animate-pulse-custom">
                 <MessageSquare size={24} className="text-gray-400" />
               </div>
               <h2 className="text-lg font-medium text-gray-700 mb-1">No messages yet</h2>
@@ -242,6 +237,7 @@ const ChatPage = () => {
                   key={index}
                   message={message}
                   isSentByCurrentUser={message.senderId === user?.id}
+                  style={{ animationDelay: `${index * 0.1}s` }}
                 />
               ))}
               <div ref={messagesEndRef} />
@@ -250,11 +246,11 @@ const ChatPage = () => {
         </div>
         
         {/* Message input */}
-        <form onSubmit={handleSendMessage} className="border-t border-gray-200 p-4">
-          <div className="flex space-x-2">
+        <form onSubmit={handleSendMessage} className="border-t border-gray-200 p-4 animate-fade-in">
+          <div className="flex space-x-3">
             <input
               type="text"
-              className="input flex-1"
+              className="input flex-1 transition-all duration-200 hover:shadow-md focus:shadow-lg"
               placeholder={`Message ${otherUser.name}...`}
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
@@ -262,7 +258,7 @@ const ChatPage = () => {
             />
             <button
               type="submit"
-              className="btn btn-primary px-4"
+              className="btn btn-primary px-6 transform transition-all duration-200 hover:scale-105"
               disabled={!newMessage.trim() || isSending || job.status === 'completed'}
             >
               {isSending ? (
@@ -274,7 +270,7 @@ const ChatPage = () => {
           </div>
           
           {job.status === 'completed' && (
-            <p className="text-sm text-gray-500 mt-2 text-center">
+            <p className="text-sm text-gray-500 mt-2 text-center animate-fade-in">
               This conversation is archived because the job is completed.
             </p>
           )}
@@ -289,13 +285,17 @@ const ChatPage = () => {
 type MessageBubbleProps = {
   message: MessageType;
   isSentByCurrentUser: boolean;
+  style?: React.CSSProperties;
 };
 
-const MessageBubble = ({ message, isSentByCurrentUser }: MessageBubbleProps) => {
+const MessageBubble = ({ message, isSentByCurrentUser, style }: MessageBubbleProps) => {
   return (
-    <div className={`flex ${isSentByCurrentUser ? 'justify-end' : 'justify-start'}`}>
+    <div 
+      className={`flex ${isSentByCurrentUser ? 'justify-end' : 'justify-start'} animate-fade-in-up`}
+      style={style}
+    >
       <div
-        className={`max-w-[70%] rounded-lg px-4 py-2 ${
+        className={`max-w-[70%] rounded-lg px-4 py-2 transform transition-all duration-200 hover:scale-[1.02] ${
           isSentByCurrentUser
             ? 'bg-primary-500 text-white'
             : 'bg-gray-100 text-gray-900'

@@ -26,28 +26,28 @@ const RoleSelection: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg">
+    <div className="min-h-screen flex items-center justify-center bg-primary-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-2xl w-full space-y-8 bg-white rounded-2xl shadow-2xl p-12 animate-fade-in-up transition-all duration-500">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-center text-4xl font-extrabold text-gray-900 animate-pulse">
             Choose Your Role
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-4 text-center text-lg text-gray-600 animate-fade-in">
             Select how you want to use FixIt
           </p>
         </div>
-        <div className="mt-8 space-y-4">
+        <div className="mt-12 flex flex-col md:flex-row gap-8 items-center justify-center">
           <button
             onClick={() => handleRoleSelect('homeowner')}
-            className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+            className="w-64 h-32 flex flex-col items-center justify-center px-6 py-4 border-2 border-primary-600 text-lg font-semibold rounded-xl text-white bg-primary-600 hover:bg-primary-700 shadow-lg transform hover:scale-105 transition-all duration-300 animate-bounce"
           >
-            I need help with repairs
+            🏠 I need help with repairs
           </button>
           <button
             onClick={() => handleRoleSelect('fixer')}
-            className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-secondary-600 hover:bg-secondary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-500"
+            className="w-64 h-32 flex flex-col items-center justify-center px-6 py-4 border-2 border-secondary-600 text-lg font-semibold rounded-xl text-white bg-secondary-600 hover:bg-secondary-700 shadow-lg transform hover:scale-105 transition-all duration-300 animate-bounce delay-150"
           >
-            I want to offer repair services
+            🛠️ I want to offer repair services
           </button>
         </div>
       </div>
